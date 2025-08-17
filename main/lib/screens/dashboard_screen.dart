@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'log_task_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   final String role;
@@ -14,15 +15,15 @@ class DashboardScreen extends StatelessWidget {
       body: ListView(
         children: [
           ListTile(
-            leading: const Icon(Icons.assignment),
-            title: const Text('Log Tasks & Hours'),
-            onTap: () {
-              // You can route to another screen later
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Coming soon: Log Tasks')),
-              );
-            },
-          ),
+          leading: const Icon(Icons.assignment),
+          title: const Text('Log Tasks & Hours'),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LogTaskScreen()),
+            );
+          },
+        ),
           ListTile(
             leading: const Icon(Icons.feedback),
             title: const Text('Submit Feedback'),
