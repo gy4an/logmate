@@ -45,7 +45,7 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
         'time': _selectedTime.format(context),
         'task': task,
         'userSignature': _userSignatureController.toPngBytes(),
-        'supervisorSignature': _supervisorSignatureController.toPngBytes(),
+        'supervisorSignature': null, // supervisor adds later
       });
 
       _taskController.clear();
@@ -87,7 +87,7 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Log Tasks & Hours')),
+      appBar: AppBar(title: const Text('Log Tasks')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -95,7 +95,10 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
             // Date Picker
             Row(
               children: [
-                Text('Date: ${DateFormat.yMMMd().format(_selectedDate)}'),
+                Text(
+                  'Date: ${DateFormat.yMMMd().format(_selectedDate)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: _pickDate,
@@ -108,7 +111,10 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
             // Time Picker
             Row(
               children: [
-                Text('Time: ${_selectedTime.format(context)}'),
+                Text(
+                  'Time: ${_selectedTime.format(context)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: _pickTime,
@@ -129,7 +135,10 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
             const SizedBox(height: 20),
 
             // User signature
-            const Text('Employee Signature'),
+            const Text(
+              'Employee Signature',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             Container(
               height: 100,
               decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
@@ -143,10 +152,13 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
               child: const Text("Clear Signature"),
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
 
-            // Supervisor signature
-            const Text('Supervisor Approval Signature'),
+            // Supervisor signature (READ-ONLY)
+            const Text(
+              'Supervisor Approval Signature (Read Only)',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             Container(
               height: 100,
               decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
