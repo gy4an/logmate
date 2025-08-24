@@ -15,18 +15,22 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
 
-  // Signature controllers
-  final SignatureController _userSignatureController = SignatureController(penStrokeWidth: 2, penColor: Colors.black);
-  final SignatureController _supervisorSignatureController = SignatureController(penStrokeWidth: 2, penColor: Colors.blue);
+  // Employee signature
+  final SignatureController _userSignatureController =
+      SignatureController(penStrokeWidth: 2, penColor: Colors.black);
+
+  // Supervisor signature (read-only here)
+  final SignatureController _supervisorSignatureController =
+      SignatureController(penStrokeWidth: 2, penColor: Colors.blue);
 
   List<Map<String, dynamic>> _logs = [];
 
   void _addLog() {
     final task = _taskController.text.trim();
 
-    if (task.isEmpty || _userSignatureController.isEmpty || _supervisorSignatureController.isEmpty) {
+    if (task.isEmpty || _userSignatureController.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please complete all fields and signatures")),
+        const SnackBar(content: Text("Please enter task and add your signature")),
       );
       return;
     }
@@ -37,7 +41,7 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
         'time': _selectedTime.format(context),
         'task': task,
         'userSignature': _userSignatureController.toPngBytes(),
-        'supervisorSignature': _supervisorSignatureController.toPngBytes(),
+        'supervisorSignature': null, // supervisor adds later
       });
 
       _taskController.clear();
@@ -79,7 +83,7 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Log Tasks & Hours')),
+      appBar: AppBar(title: const Text('Log Tasks')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -87,7 +91,10 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
             // Date Picker
             Row(
               children: [
-                Text('Date: ${DateFormat.yMMMd().format(_selectedDate)}'),
+                Text(
+                  'Date: ${DateFormat.yMMMd().format(_selectedDate)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(width: 10),
                 ElevatedButton(onPressed: _pickDate, child: const Text('Pick Date')),
               ],
@@ -97,7 +104,10 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
             // Time Picker
             Row(
               children: [
-                Text('Time: ${_selectedTime.format(context)}'),
+                Text(
+                  'Time: ${_selectedTime.format(context)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(width: 10),
                 ElevatedButton(onPressed: _pickTime, child: const Text('Pick Time')),
               ],
@@ -115,7 +125,7 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
             const SizedBox(height: 20),
 
             // User signature
-            const Text('Employee Signature'),
+            const Text('Employee Signature', style: TextStyle(fontWeight: FontWeight.bold)),
             Container(
               height: 100,
               decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
@@ -124,21 +134,26 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
                 backgroundColor: Colors.white,
               ),
             ),
-            TextButton(onPressed: () => _userSignatureController.clear(), child: const Text("Clear Signature")),
+            TextButton(
+              onPressed: () => _userSignatureController.clear(),
+              child: const Text("Clear Signature"),
+            ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
 
-            // Supervisor signature
-            const Text('Supervisor Approval Signature'),
+            // Supervisor signature (READ-ONLY)
+            const Text('Supervisor Approval Signature (Read Only)',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             Container(
               height: 100,
-              decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
-              child: Signature(
-                controller: _supervisorSignatureController,
-                backgroundColor: Colors.white,
+              color: Colors.grey[200], // light grey to indicate disabled
+              child: Center(
+                child: const Text(
+                  "Awaiting Supervisor Approval",
+                  style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                ),
               ),
             ),
-            TextButton(onPressed: () => _supervisorSignatureController.clear(), child: const Text("Clear Signature")),
 
             const SizedBox(height: 15),
 
@@ -157,7 +172,17 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
                   final log = _logs[index];
                   return ListTile(
                     title: Text('${log['date']} ${log['time']} — ${log['task']}'),
-                    subtitle: const Text("Signatures captured"),
+                    subtitle: Text(
+                      log['supervisorSignature'] == null
+                          ? "Pending Supervisor Approval"
+                          : "Approved by Supervisor",
+                      style: TextStyle(
+                        color: log['supervisorSignature'] == null
+                            ? Colors.red
+                            : Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   );
                 },
               ),
