@@ -9,21 +9,19 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Dashboard (${role.toUpperCase()})'),
-      ),
+      appBar: AppBar(title: Text('Dashboard (${role.toUpperCase()})')),
       body: ListView(
         children: [
           ListTile(
-          leading: const Icon(Icons.assignment),
-          title: const Text('Log Tasks & Hours'),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const LogTaskScreen()),
-            );
-          },
-        ),
+            leading: const Icon(Icons.assignment),
+            title: const Text('Log Tasks & Hours'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LogTaskScreen()),
+              );
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.feedback),
             title: const Text('Submit Feedback'),

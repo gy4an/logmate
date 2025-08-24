@@ -16,17 +16,25 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
   TimeOfDay _selectedTime = TimeOfDay.now();
 
   // Signature controllers
-  final SignatureController _userSignatureController = SignatureController(penStrokeWidth: 2, penColor: Colors.black);
-  final SignatureController _supervisorSignatureController = SignatureController(penStrokeWidth: 2, penColor: Colors.blue);
+  final SignatureController _userSignatureController = SignatureController(
+    penStrokeWidth: 2,
+    penColor: Colors.black,
+  );
+  final SignatureController _supervisorSignatureController =
+      SignatureController(penStrokeWidth: 2, penColor: Colors.blue);
 
   List<Map<String, dynamic>> _logs = [];
 
   void _addLog() {
     final task = _taskController.text.trim();
 
-    if (task.isEmpty || _userSignatureController.isEmpty || _supervisorSignatureController.isEmpty) {
+    if (task.isEmpty ||
+        _userSignatureController.isEmpty ||
+        _supervisorSignatureController.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please complete all fields and signatures")),
+        const SnackBar(
+          content: Text("Please complete all fields and signatures"),
+        ),
       );
       return;
     }
@@ -89,7 +97,10 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
               children: [
                 Text('Date: ${DateFormat.yMMMd().format(_selectedDate)}'),
                 const SizedBox(width: 10),
-                ElevatedButton(onPressed: _pickDate, child: const Text('Pick Date')),
+                ElevatedButton(
+                  onPressed: _pickDate,
+                  child: const Text('Pick Date'),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -99,7 +110,10 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
               children: [
                 Text('Time: ${_selectedTime.format(context)}'),
                 const SizedBox(width: 10),
-                ElevatedButton(onPressed: _pickTime, child: const Text('Pick Time')),
+                ElevatedButton(
+                  onPressed: _pickTime,
+                  child: const Text('Pick Time'),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -124,7 +138,10 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
                 backgroundColor: Colors.white,
               ),
             ),
-            TextButton(onPressed: () => _userSignatureController.clear(), child: const Text("Clear Signature")),
+            TextButton(
+              onPressed: () => _userSignatureController.clear(),
+              child: const Text("Clear Signature"),
+            ),
 
             const SizedBox(height: 10),
 
@@ -138,7 +155,10 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
                 backgroundColor: Colors.white,
               ),
             ),
-            TextButton(onPressed: () => _supervisorSignatureController.clear(), child: const Text("Clear Signature")),
+            TextButton(
+              onPressed: () => _supervisorSignatureController.clear(),
+              child: const Text("Clear Signature"),
+            ),
 
             const SizedBox(height: 15),
 
@@ -149,14 +169,19 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
             ),
             const SizedBox(height: 20),
             const Divider(),
-            const Text('Task Logs:', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Task Logs:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             Expanded(
               child: ListView.builder(
                 itemCount: _logs.length,
                 itemBuilder: (context, index) {
                   final log = _logs[index];
                   return ListTile(
-                    title: Text('${log['date']} ${log['time']} — ${log['task']}'),
+                    title: Text(
+                      '${log['date']} ${log['time']} — ${log['task']}',
+                    ),
                     subtitle: const Text("Signatures captured"),
                   );
                 },
