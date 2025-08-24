@@ -15,11 +15,13 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
 
-  // Signature controllers
+  // Employee signature
   final SignatureController _userSignatureController = SignatureController(
     penStrokeWidth: 2,
     penColor: Colors.black,
   );
+
+  // Supervisor signature (read-only here)
   final SignatureController _supervisorSignatureController =
       SignatureController(penStrokeWidth: 2, penColor: Colors.blue);
 
@@ -28,12 +30,10 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
   void _addLog() {
     final task = _taskController.text.trim();
 
-    if (task.isEmpty ||
-        _userSignatureController.isEmpty ||
-        _supervisorSignatureController.isEmpty) {
+    if (task.isEmpty || _userSignatureController.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Please complete all fields and signatures"),
+          content: Text("Please enter task and add your signature"),
         ),
       );
       return;
@@ -161,15 +161,16 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
             ),
             Container(
               height: 100,
-              decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
-              child: Signature(
-                controller: _supervisorSignatureController,
-                backgroundColor: Colors.white,
+              color: Colors.grey[200], // light grey to indicate disabled
+              child: Center(
+                child: const Text(
+                  "Awaiting Supervisor Approval",
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
               ),
-            ),
-            TextButton(
-              onPressed: () => _supervisorSignatureController.clear(),
-              child: const Text("Clear Signature"),
             ),
 
             const SizedBox(height: 15),
@@ -194,7 +195,17 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
                     title: Text(
                       '${log['date']} ${log['time']} — ${log['task']}',
                     ),
-                    subtitle: const Text("Signatures captured"),
+                    subtitle: Text(
+                      log['supervisorSignature'] == null
+                          ? "Pending Supervisor Approval"
+                          : "Approved by Supervisor",
+                      style: TextStyle(
+                        color: log['supervisorSignature'] == null
+                            ? Colors.red
+                            : Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   );
                 },
               ),
