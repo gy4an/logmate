@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dashboard_screen.dart';
-import 'signup_screen.dart'; // import the signup screen
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -9,10 +10,33 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   String _selectedRole = 'user';
+
+  bool isLogin = true;
+  late Animation<double> loginSize;
+  late AnimationController loginController;
+  Duration animationDuration = const Duration(milliseconds: 270);
+
+  @override
+  void initState() {
+    super.initState();
+
+    // hide status bar
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
+
+    loginController =
+        AnimationController(vsync: this, duration: animationDuration);
+  }
+
+  @override
+  void dispose() {
+    loginController.dispose();
+    super.dispose();
+  }
 
   void _login() {
     final username = _usernameController.text.trim();
@@ -25,7 +49,6 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // Simulated login logic (no actual auth for now)
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -41,60 +64,222 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('LogMate Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Log in to LogMate', style: TextStyle(fontSize: 24)),
-            const SizedBox(height: 30),
-            TextField(
-              controller: _usernameController,
-              decoration: const InputDecoration(
-                labelText: 'Username',
-                border: OutlineInputBorder(),
-              ),
+  Widget _buildLoginHeader() {
+    return Container(
+      padding: const EdgeInsets.only(bottom: 62, top: 16),
+      width: MediaQuery.of(context).size.width,
+      height: loginSize.value,
+      decoration: const BoxDecoration(
+        color: Color(0XFF2a3ed7),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(190),
+          bottomRight: Radius.circular(190),
+        ),
+      ),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: GestureDetector(
+          onTap: isLogin
+              ? null
+              : () {
+                  loginController.reverse();
+                  setState(() {
+                    isLogin = !isLogin;
+                  });
+                },
+          child: const Text(
+            'LOG IN',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 15),
-            Row(
-              children: [
-                const Text("Role: "),
-                const SizedBox(width: 10),
-                DropdownButton<String>(
-                  value: _selectedRole,
-                  items: ['user', 'admin'].map((role) {
-                    return DropdownMenuItem(value: role, child: Text(role));
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedRole = value!;
-                    });
-                  },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoginForm() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Visibility(
+          visible: isLogin,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 42),
+            child: Column(
+              children: <Widget>[
+                TextField(
+                  controller: _usernameController,
+                  style: const TextStyle(color: Colors.black, height: 0.5),
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.person),
+                    hintText: 'Username',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(32)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  style: const TextStyle(color: Colors.black, height: 0.5),
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.vpn_key),
+                    hintText: 'Password',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(32)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Text("Role: "),
+                    const SizedBox(width: 10),
+                    DropdownButton<String>(
+                      value: _selectedRole,
+                      items: ['user', 'admin'].map((role) {
+                        return DropdownMenuItem(
+                          value: role,
+                          child: Text(role),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedRole = value!;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                Container(
+                  width: 200,
+                  height: 40,
+                  margin: const EdgeInsets.only(top: 32),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.all(Radius.circular(50)),
+                  ),
+                  child: InkWell(
+                    onTap: _login,
+                    child: const Center(
+                      child: Text(
+                        'LOG IN',
+                        style: TextStyle(
+                          color: Color(0XFF2a3ed7),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 25),
-            ElevatedButton(onPressed: _login, child: const Text('Login')),
-            const SizedBox(height: 15),
-            TextButton(
-              onPressed: _goToSignup,
-              child: const Text("Don't have an account? Sign up here"),
-            ),
-          ],
+          ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildRegisterComponents() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 42, vertical: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const Padding(
+            padding: EdgeInsets.only(bottom: 32),
+            child: Text(
+              'Sign Up',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Color(0XFF2a3ed7),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0XFF2a3ed7),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: _goToSignup,
+            child: const Text("Go to Sign Up"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double _defaultLoginSize = MediaQuery.of(context).size.height / 1.6;
+
+    loginSize = Tween<double>(begin: _defaultLoginSize, end: 200).animate(
+      CurvedAnimation(parent: loginController, curve: Curves.linear),
+    );
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: <Widget>[
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: AnimatedOpacity(
+              opacity: isLogin ? 0.0 : 1.0,
+              duration: animationDuration,
+              child: _buildRegisterComponents(),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              color: isLogin && !loginController.isAnimating
+                  ? Colors.white
+                  : Colors.transparent,
+              width: MediaQuery.of(context).size.width,
+              height: _defaultLoginSize / 1.5,
+              child: Visibility(
+                visible: isLogin,
+                child: GestureDetector(
+                  onTap: () {
+                    loginController.forward();
+                    setState(() {
+                      isLogin = !isLogin;
+                    });
+                  },
+                  child: const Center(
+                    child: Text(
+                      'Sign Up',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0XFF2a3ed7),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          AnimatedBuilder(
+            animation: loginController,
+            builder: (context, child) {
+              return _buildLoginHeader();
+            },
+          ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: Container(
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.height / 2,
+              child: Center(child: _buildLoginForm()),
+            ),
+          ),
+        ],
       ),
     );
   }
