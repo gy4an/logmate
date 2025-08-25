@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dashboard_screen.dart';
-import 'signup_screen.dart'; // import the signup screen
+import 'signup_screen.dart';
+import 'user_dashboard_screen.dart';
+import 'admin_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -25,13 +26,18 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // Simulated login logic (no actual auth for now)
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DashboardScreen(role: _selectedRole),
-      ),
-    );
+    // Simulated login logic
+    if (_selectedRole == 'user') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const UserDashboardScreen()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+      );
+    }
   }
 
   void _goToSignup() {

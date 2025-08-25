@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'log_task_screen.dart';
 import 'login_screen.dart';
 
-class DashboardScreen extends StatelessWidget {
-  final String role;
-
-  const DashboardScreen({super.key, required this.role});
+class AdminDashboardScreen extends StatelessWidget {
+  const AdminDashboardScreen({super.key});
 
   Future<bool> _showLogoutDialog(BuildContext context) async {
     final result = await showDialog<bool>(
@@ -25,7 +23,7 @@ class DashboardScreen extends StatelessWidget {
         ],
       ),
     );
-    return result ?? false; // default = false if closed
+    return result ?? false;
   }
 
   @override
@@ -39,11 +37,11 @@ class DashboardScreen extends StatelessWidget {
             MaterialPageRoute(builder: (context) => const LoginScreen()),
           );
         }
-        return false; // block normal back unless logout confirmed
+        return false;
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Dashboard (${role.toUpperCase()})'),
+          title: const Text('Admin Dashboard'),
           actions: [
             IconButton(
               icon: const Icon(Icons.logout),
@@ -103,18 +101,15 @@ class DashboardScreen extends StatelessWidget {
                 );
               },
             ),
-            if (role == 'admin')
-              ListTile(
-                leading: const Icon(Icons.supervised_user_circle),
-                title: const Text('Supervisor Dashboard'),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Coming soon: Supervisor View'),
-                    ),
-                  );
-                },
-              ),
+            ListTile(
+              leading: const Icon(Icons.supervised_user_circle),
+              title: const Text('Supervisor Dashboard'),
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Coming soon: Supervisor View')),
+                );
+              },
+            ),
           ],
         ),
       ),
