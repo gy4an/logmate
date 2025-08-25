@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
+import 'signup_screen.dart'; // import the signup screen
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -30,6 +31,13 @@ class _LoginScreenState extends State<LoginScreen> {
       MaterialPageRoute(
         builder: (context) => DashboardScreen(role: _selectedRole),
       ),
+    );
+  }
+
+  void _goToSignup() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SignupScreen()),
     );
   }
 
@@ -80,6 +88,11 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 25),
             ElevatedButton(onPressed: _login, child: const Text('Login')),
+            const SizedBox(height: 15),
+            TextButton(
+              onPressed: _goToSignup,
+              child: const Text("Don't have an account? Sign up here"),
+            ),
           ],
         ),
       ),
