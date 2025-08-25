@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dashboard_screen.dart';
 import 'signup_screen.dart';
+import 'admin_dashboard_screen.dart';
+import 'user_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,8 +29,10 @@ class _LoginScreenState extends State<LoginScreen>
     // hide status bar
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
 
-    loginController =
-        AnimationController(vsync: this, duration: animationDuration);
+    loginController = AnimationController(
+      vsync: this,
+      duration: animationDuration,
+    );
   }
 
   @override
@@ -49,12 +52,18 @@ class _LoginScreenState extends State<LoginScreen>
       return;
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DashboardScreen(role: _selectedRole),
-      ),
-    );
+    // Navigate based on role
+    if (_selectedRole == 'admin') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const UserDashboardScreen()),
+      );
+    }
   }
 
   Future<void> _goToSignup() async {
@@ -216,21 +225,22 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ),
           ),
+          // Small rounded button (like original design)
           SizedBox(
-            width: double.infinity,
+            width: 160,
             child: TextButton(
-            style: TextButton.styleFrom(
-            backgroundColor: Colors.blue, // button fill color
-            foregroundColor: Colors.white, // text color
-            shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30), // fully rounded
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
                 ),
-               onPressed: _goToSignup,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              onPressed: _goToSignup,
               child: const Text("Go to Sign Up"),
             ),
-
           ),
         ],
       ),
