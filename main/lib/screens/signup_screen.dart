@@ -8,22 +8,19 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  final _fullNameController = TextEditingController();
-  final _emailController = TextEditingController();
   final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
   void _signup() {
-    final fullName = _fullNameController.text.trim();
-    final email = _emailController.text.trim();
     final username = _usernameController.text.trim();
+    final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
 
-    if (fullName.isEmpty ||
+    if (username.isEmpty ||
         email.isEmpty ||
-        username.isEmpty ||
         password.isEmpty ||
         confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -39,72 +36,117 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    // Simulated signup logic
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text("Account created for $fullName")));
+    ).showSnackBar(SnackBar(content: Text("Account created for $username")));
 
-    Navigator.pop(context); // Go back to login screen
+    Navigator.pop(context);
+  }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.blue),
+      enabledBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: Colors.blue),
+      ),
+      focusedBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: Colors.blue, width: 2),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Sign Up")),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: ListView(
-          children: [
-            const Text("Create a new account", style: TextStyle(fontSize: 24)),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _fullNameController,
-              decoration: const InputDecoration(
-                labelText: "Full Name",
-                border: OutlineInputBorder(),
-              ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF0A2E63), // Dark blue
+              Color(0xFF1E88E5), // VSCode blue
+            ],
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                const SizedBox(height: 40),
+                const Text(
+                  "Create Your\nAccount",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _usernameController,
+                        decoration: _inputDecoration("Username"),
+                      ),
+                      TextField(
+                        controller: _emailController,
+                        decoration: _inputDecoration("Phone or Gmail"),
+                      ),
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: _inputDecoration("Password"),
+                      ),
+                      TextField(
+                        controller: _confirmPasswordController,
+                        obscureText: true,
+                        decoration: _inputDecoration("Confirm Password"),
+                      ),
+                      const SizedBox(height: 25),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1E88E5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: _signup,
+                          child: const Text(
+                            "SIGN UP",
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 15),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    "Already have an account? Sign In",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: "Email",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: _usernameController,
-              decoration: const InputDecoration(
-                labelText: "Username",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: "Password",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: _confirmPasswordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: "Confirm Password",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 25),
-            ElevatedButton.icon(
-              onPressed: _signup,
-              icon: const Icon(Icons.check),
-              label: const Text("Sign Up"),
-            ),
-          ],
+          ),
         ),
       ),
     );
