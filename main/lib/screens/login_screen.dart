@@ -20,7 +20,7 @@ class _LoginScreenState extends State<LoginScreen>
   bool isLogin = true;
   late Animation<double> loginSize;
   late AnimationController loginController;
-  final Duration animationDuration = const Duration(milliseconds: 270);
+  Duration animationDuration = const Duration(milliseconds: 270);
 
   @override
   void initState() {
@@ -67,13 +67,12 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _goToSignup() async {
-    // Optional: close the panel after returning
     await Navigator.of(context).push(
       PageRouteBuilder(
         pageBuilder: (_, animation, __) => const SignupScreen(),
         transitionsBuilder: (_, animation, __, child) => SlideTransition(
           position: Tween<Offset>(
-            begin: const Offset(0, 1), // slide up
+            begin: const Offset(0, 1), // slide from bottom
             end: Offset.zero,
           ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(animation),
           child: child,
@@ -81,11 +80,6 @@ class _LoginScreenState extends State<LoginScreen>
         transitionDuration: const Duration(milliseconds: 400),
       ),
     );
-
-    if (mounted && !isLogin) {
-      loginController.reverse();
-      setState(() => isLogin = true);
-    }
   }
 
   Widget _buildLoginHeader() {
@@ -166,10 +160,7 @@ class _LoginScreenState extends State<LoginScreen>
                     DropdownButton<String>(
                       value: _selectedRole,
                       items: ['user', 'admin'].map((role) {
-                        return DropdownMenuItem(
-                          value: role,
-                          child: Text(role),
-                        );
+                        return DropdownMenuItem(value: role, child: Text(role));
                       }).toList(),
                       onChanged: (value) {
                         setState(() {
@@ -225,22 +216,14 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ),
           ),
-          // Small rounded button (like original design)
-          SizedBox(
-            width: 160,
-            child: TextButton(
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              ),
-              onPressed: _goToSignup,
-              child: const Text("Go to Sign Up"),
+          // unchanged appearance/size
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0XFF2a3ed7),
+              foregroundColor: Colors.white,
             ),
+            onPressed: _goToSignup,
+            child: const Text("Go to Sign Up"),
           ),
         ],
       ),
@@ -251,15 +234,16 @@ class _LoginScreenState extends State<LoginScreen>
   Widget build(BuildContext context) {
     final double defaultLoginSize = MediaQuery.of(context).size.height / 1.6;
 
-    loginSize = Tween<double>(begin: defaultLoginSize, end: 200).animate(
-      CurvedAnimation(parent: loginController, curve: Curves.linear),
-    );
+    loginSize = Tween<double>(
+      begin: defaultLoginSize,
+      end: 200,
+    ).animate(CurvedAnimation(parent: loginController, curve: Curves.linear));
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: <Widget>[
-          // Login header (blue arc)
+          // Blue arc header
           AnimatedBuilder(
             animation: loginController,
             builder: (context, child) => _buildLoginHeader(),
@@ -289,7 +273,9 @@ class _LoginScreenState extends State<LoginScreen>
                 child: GestureDetector(
                   onTap: () {
                     loginController.forward();
-                    setState(() => isLogin = false);
+                    setState(() {
+                      isLogin = !isLogin;
+                    });
                   },
                   child: const Center(
                     child: Text(
@@ -306,13 +292,16 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
 
-          // SIGN UP SLIDE (put LAST so it's on TOP and receives taps)
+          // SIGN UP SLIDE — place LAST so it sits on TOP and receives taps
           Align(
             alignment: Alignment.bottomCenter,
-            child: AnimatedOpacity(
-              opacity: isLogin ? 0.0 : 1.0,
-              duration: animationDuration,
-              child: _buildRegisterComponents(),
+            child: IgnorePointer(
+              ignoring: isLogin, // don't intercept taps when hidden
+              child: AnimatedOpacity(
+                opacity: isLogin ? 0.0 : 1.0,
+                duration: animationDuration,
+                child: _buildRegisterComponents(),
+              ),
             ),
           ),
         ],
