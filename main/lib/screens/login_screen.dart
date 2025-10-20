@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'signup_screen.dart';
 import 'admin_dashboard_screen.dart';
 import 'user_dashboard_screen.dart';
@@ -15,7 +17,6 @@ class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  String _selectedRole = 'user';
 
   bool isLogin = true;
   late Animation<double> loginSize;
@@ -26,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen>
   void initState() {
     super.initState();
 
-    // hide status bar
+    // Hide status bar
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
 
     loginController = AnimationController(
@@ -38,10 +39,12 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void dispose() {
     loginController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
-  void _login() {
+  Future<void> _login() async {
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -52,8 +55,35 @@ class _LoginScreenState extends State<LoginScreen>
       return;
     }
 
-    // Navigate based on role
-    if (_selectedRole == 'admin') {
+    final prefs = await SharedPreferences.getInstance();
+    final String? accountsJson = prefs.getString('accounts');
+
+    if (accountsJson == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No accounts found. Please sign up first.')),
+      );
+      return;
+    }
+
+    final List accounts = jsonDecode(accountsJson);
+    final user = accounts.firstWhere(
+      (acc) => acc['username'] == username && acc['password'] == password,
+      orElse: () => null,
+    );
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid username or password')),
+      );
+      return;
+    }
+
+    // ✅ Login successful → navigate based on stored role
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Welcome, ${user['username']}!')),
+    );
+
+    if (user['role'] == 'admin') {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
@@ -152,24 +182,6 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Text("Role: "),
-                    const SizedBox(width: 10),
-                    DropdownButton<String>(
-                      value: _selectedRole,
-                      items: ['user', 'admin'].map((role) {
-                        return DropdownMenuItem(value: role, child: Text(role));
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedRole = value!;
-                        });
-                      },
-                    ),
-                  ],
-                ),
                 Container(
                   width: 200,
                   height: 40,
@@ -216,10 +228,9 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ),
           ),
-          // unchanged appearance/size
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0XFF2a3ed7),
+              backgroundColor: const Color(0XFF2a3ed7),
               foregroundColor: Colors.white,
             ),
             onPressed: _goToSignup,
@@ -296,7 +307,7 @@ class _LoginScreenState extends State<LoginScreen>
           Align(
             alignment: Alignment.bottomCenter,
             child: IgnorePointer(
-              ignoring: isLogin, // don't intercept taps when hidden
+              ignoring: isLogin, // don’t intercept taps when hidden
               child: AnimatedOpacity(
                 opacity: isLogin ? 0.0 : 1.0,
                 duration: animationDuration,
