@@ -26,6 +26,48 @@ class AdminDashboardScreen extends StatelessWidget {
     return result ?? false;
   }
 
+  Widget dashboardCard({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blue.shade400, Colors.blue.shade800],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 6,
+              offset: const Offset(2, 4),
+            )
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 40, color: Colors.white),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -42,6 +84,15 @@ class AdminDashboardScreen extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Admin Dashboard'),
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0A2E63), Color(0xFF1E88E5)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
           actions: [
             IconButton(
               icon: const Icon(Icons.logout),
@@ -60,57 +111,64 @@ class AdminDashboardScreen extends StatelessWidget {
             ),
           ],
         ),
-        body: ListView(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.assignment),
-              title: const Text('Log Tasks & Hours'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const LogTaskScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.feedback),
-              title: const Text('Submit Feedback'),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Coming soon: Feedback')),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Sign Document'),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Coming soon: Signature')),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.analytics),
-              title: const Text('Analytics & Reports'),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Coming soon: Analytics')),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.supervised_user_circle),
-              title: const Text('Supervisor Dashboard'),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Coming soon: Supervisor View')),
-                );
-              },
-            ),
-          ],
+        backgroundColor: Colors.grey.shade200,
+        body: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: GridView.count(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            children: [
+              dashboardCard(
+                icon: Icons.assignment,
+                title: "Log Tasks & Hours",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LogTaskScreen(),
+                    ),
+                  );
+                },
+              ),
+              dashboardCard(
+                icon: Icons.feedback,
+                title: "Feedback",
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Coming soon: Feedback')),
+                  );
+                },
+              ),
+              dashboardCard(
+                icon: Icons.edit_document,
+                title: "Sign Documents",
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Coming soon: Signature')),
+                  );
+                },
+              ),
+              dashboardCard(
+                icon: Icons.analytics,
+                title: "Analytics & Reports",
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Coming soon: Analytics')),
+                  );
+                },
+              ),
+              dashboardCard(
+                icon: Icons.supervised_user_circle,
+                title: "Supervisor View",
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Coming soon: Supervisor Dashboard')),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
