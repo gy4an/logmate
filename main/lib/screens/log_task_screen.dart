@@ -1,216 +1,194 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signature/signature.dart';
 
 class LogTaskScreen extends StatefulWidget {
-  const LogTaskScreen({super.key});
+  final String username;
+  const LogTaskScreen({super.key, required this.username});
 
   @override
   State<LogTaskScreen> createState() => _LogTaskScreenState();
 }
 
 class _LogTaskScreenState extends State<LogTaskScreen> {
-  final _taskController = TextEditingController();
-
-  DateTime _selectedDate = DateTime.now();
-  TimeOfDay _selectedTime = TimeOfDay.now();
-
-  // Employee signature
-  final SignatureController _userSignatureController = SignatureController(
+  final TextEditingController _taskController = TextEditingController();
+  final TextEditingController _hoursController = TextEditingController();
+  final SignatureController _signatureController = SignatureController(
     penStrokeWidth: 2,
     penColor: Colors.black,
   );
 
-  // Supervisor signature (read-only here)
-  final SignatureController _supervisorSignatureController =
-      SignatureController(penStrokeWidth: 2, penColor: Colors.blue);
+  List<Map<String, dynamic>> _tasks = [];
 
-  List<Map<String, dynamic>> _logs = [];
+  @override
+  void initState() {
+    super.initState();
+    _loadTasks();
+  }
 
-  void _addLog() {
-    final task = _taskController.text.trim();
+  Future<void> _loadTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'tasks_${widget.username}';
+    final data = prefs.getString(key);
+    if (data != null) {
+      final List<dynamic> decoded = jsonDecode(data);
+      setState(() {
+        _tasks = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+      });
+    }
+  }
 
-    if (task.isEmpty || _userSignatureController.isEmpty) {
+  Future<void> _saveTask() async {
+    if (_taskController.text.isEmpty || _hoursController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter task and add your signature"),
-        ),
+        const SnackBar(content: Text('Please fill all fields')),
       );
       return;
     }
 
+    if (_signatureController.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please add your signature')),
+      );
+      return;
+    }
+
+    final Uint8List? signatureBytes = await _signatureController.toPngBytes();
+    if (signatureBytes == null) return;
+
+    final newTask = {
+      'task': _taskController.text,
+      'hours': _hoursController.text,
+      'signature': base64Encode(signatureBytes),
+      'approved': false,
+      'adminSignature': null,
+    };
+
     setState(() {
-      _logs.add({
-        'date': DateFormat.yMMMd().format(_selectedDate),
-        'time': _selectedTime.format(context),
-        'task': task,
-        'userSignature': _userSignatureController.toPngBytes(),
-        'supervisorSignature': null, // supervisor adds later
-      });
-
+      _tasks.add(newTask);
       _taskController.clear();
-      _userSignatureController.clear();
-      _supervisorSignatureController.clear();
+      _hoursController.clear();
+      _signatureController.clear();
     });
-  }
 
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'tasks_${widget.username}';
+    await prefs.setString(key, jsonEncode(_tasks));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Task saved successfully!')),
     );
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
-    }
-  }
-
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime,
-    );
-    if (picked != null) {
-      setState(() => _selectedTime = picked);
-    }
-  }
-
-  @override
-  void dispose() {
-    _taskController.dispose();
-    _userSignatureController.dispose();
-    _supervisorSignatureController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Log Tasks')),
+      appBar: AppBar(
+        title: const Text('Log Task & Hours'),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF0A2E63), Color(0xFF1E88E5)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Date Picker
-            Row(
-              children: [
-                Text(
-                  'Date: ${DateFormat.yMMMd().format(_selectedDate)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: _pickDate,
-                  child: const Text('Pick Date'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            // Time Picker
-            Row(
-              children: [
-                Text(
-                  'Time: ${_selectedTime.format(context)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: _pickTime,
-                  child: const Text('Pick Time'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            // Task description
-            TextField(
-              controller: _taskController,
-              decoration: const InputDecoration(
-                labelText: 'Task Name / Description',
-                border: OutlineInputBorder(),
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Task Description:',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
-            ),
-            const SizedBox(height: 20),
-
-            // User signature
-            const Text(
-              'Employee Signature',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Container(
-              height: 100,
-              decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
-              child: Signature(
-                controller: _userSignatureController,
-                backgroundColor: Colors.white,
+              TextField(
+                controller: _taskController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter task description',
+                ),
               ),
-            ),
-            TextButton(
-              onPressed: () => _userSignatureController.clear(),
-              child: const Text("Clear Signature"),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Supervisor signature (READ-ONLY)
-            const Text(
-              'Supervisor Approval Signature (Read Only)',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Container(
-              height: 100,
-              color: Colors.grey[200], // light grey to indicate disabled
-              child: Center(
-                child: const Text(
-                  "Awaiting Supervisor Approval",
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontStyle: FontStyle.italic,
+              const SizedBox(height: 12),
+              const Text(
+                'Hours Worked:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              TextField(
+                controller: _hoursController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter hours worked',
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Signature:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Container(
+                height: 150,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                ),
+                child: Signature(
+                  controller: _signatureController,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  ElevatedButton(
+                    onPressed: () => _signatureController.clear(),
+                    child: const Text('Clear Signature'),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: _saveTask,
+                    child: const Text('Save Task'),
+                  ),
+                ],
               ),
-            ),
-
-            const SizedBox(height: 15),
-
-            ElevatedButton.icon(
-              onPressed: _addLog,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Entry'),
-            ),
-            const SizedBox(height: 20),
-            const Divider(),
-            const Text(
-              'Task Logs:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _logs.length,
-                itemBuilder: (context, index) {
-                  final log = _logs[index];
-                  return ListTile(
-                    title: Text(
-                      '${log['date']} ${log['time']} — ${log['task']}',
-                    ),
-                    subtitle: Text(
-                      log['supervisorSignature'] == null
-                          ? "Pending Supervisor Approval"
-                          : "Approved by Supervisor",
-                      style: TextStyle(
-                        color: log['supervisorSignature'] == null
-                            ? Colors.red
-                            : Colors.green,
-                        fontWeight: FontWeight.bold,
+              const SizedBox(height: 20),
+              const Divider(),
+              const Text(
+                'Your Logged Tasks:',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              ..._tasks.map((task) => Card(
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    child: ListTile(
+                      title: Text(task['task']),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Hours: ${task['hours']}'),
+                          const SizedBox(height: 4),
+                          Text(
+                            task['approved']
+                                ? 'Status: Approved ✅'
+                                : 'Status: Pending ⏳',
+                            style: TextStyle(
+                              color: task['approved']
+                                  ? Colors.green
+                                  : Colors.orange,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-          ],
+                  )),
+            ],
+          ),
         ),
       ),
     );

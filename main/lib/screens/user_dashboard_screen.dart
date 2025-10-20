@@ -4,7 +4,9 @@ import 'login_screen.dart';
 import 'user_analytics_screen.dart'; // ✅ import the analytics report screen
 
 class UserDashboardScreen extends StatelessWidget {
-  const UserDashboardScreen({super.key});
+  final String username; // ✅ receive the username
+
+  const UserDashboardScreen({super.key, required this.username});
 
   Future<bool> _showLogoutDialog(BuildContext context) async {
     final result = await showDialog<bool>(
@@ -84,7 +86,7 @@ class UserDashboardScreen extends StatelessWidget {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('User Dashboard'),
+          title: Text('Welcome, $username 👋'),
           flexibleSpace: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -127,7 +129,7 @@ class UserDashboardScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const LogTaskScreen(),
+                      builder: (context) => LogTaskScreen(username: username),
                     ),
                   );
                 },

@@ -91,7 +91,10 @@ class _LoginScreenState extends State<LoginScreen>
     } else {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const UserDashboardScreen()),
+        MaterialPageRoute(
+          builder: (context) =>
+              UserDashboardScreen(username: _usernameController.text),
+        ),
       );
     }
   }
@@ -102,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen>
         pageBuilder: (_, animation, __) => const SignupScreen(),
         transitionsBuilder: (_, animation, __, child) => SlideTransition(
           position: Tween<Offset>(
-            begin: const Offset(0, 1), // slide from bottom
+            begin: const Offset(0, 1),
             end: Offset.zero,
           ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(animation),
           child: child,
@@ -260,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen>
             builder: (context, child) => _buildLoginHeader(),
           ),
 
-          // Login form (top half)
+          // Login form
           Align(
             alignment: Alignment.topCenter,
             child: SizedBox(
@@ -270,7 +273,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
 
-          // Tap-to-open Sign Up (only when in login state)
+          // "Sign Up" button at bottom
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -303,11 +306,11 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
 
-          // SIGN UP SLIDE — place LAST so it sits on TOP and receives taps
+          // Slide-up signup
           Align(
             alignment: Alignment.bottomCenter,
             child: IgnorePointer(
-              ignoring: isLogin, // don’t intercept taps when hidden
+              ignoring: isLogin,
               child: AnimatedOpacity(
                 opacity: isLogin ? 0.0 : 1.0,
                 duration: animationDuration,
