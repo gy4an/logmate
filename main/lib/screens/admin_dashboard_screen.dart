@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:main/screens/admin_signature_screen.dart';
 import 'log_task_screen.dart';
 import 'login_screen.dart';
 
@@ -87,11 +88,15 @@ class AdminDashboardScreen extends StatelessWidget {
               leading: const Icon(Icons.edit),
               title: const Text('Sign Document'),
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Coming soon: Signature')),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminSignatureScreen(),
+                  ),
                 );
               },
             ),
+
             ListTile(
               leading: const Icon(Icons.analytics),
               title: const Text('Analytics & Reports'),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'log_task_screen.dart';
 import 'login_screen.dart';
+import 'user_analytics_screen.dart'; // ✅ import the analytics report screen
 
 class UserDashboardScreen extends StatelessWidget {
   const UserDashboardScreen({super.key});
@@ -111,7 +112,7 @@ class UserDashboardScreen extends StatelessWidget {
             ),
           ],
         ),
-        backgroundColor: Colors.grey.shade200, // light bg so cards stand out
+        backgroundColor: Colors.grey.shade200,
         body: Padding(
           padding: const EdgeInsets.all(12.0),
           child: GridView.count(
@@ -153,8 +154,12 @@ class UserDashboardScreen extends StatelessWidget {
                 icon: Icons.analytics,
                 title: "Reports",
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Coming soon: Analytics')),
+                  // ✅ Go to analytics screen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const UserAnalyticsScreen(),
+                    ),
                   );
                 },
               ),
