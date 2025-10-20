@@ -1,145 +1,226 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signature/signature.dart';
 
 class AdminSignatureScreen extends StatefulWidget {
-  const AdminSignatureScreen({Key? key}) : super(key: key);
+  const AdminSignatureScreen({super.key});
 
   @override
   State<AdminSignatureScreen> createState() => _AdminSignatureScreenState();
 }
 
 class _AdminSignatureScreenState extends State<AdminSignatureScreen> {
-  // Mock student list — replace with Firebase or DB later
-  final List<Map<String, dynamic>> _students = [
-    {'id': 'S001', 'name': 'Ana Garcia', 'course': 'BSCS', 'year': 3, 'signed': false},
-    {'id': 'S002', 'name': 'Ben Lopez', 'course': 'BSIT', 'year': 2, 'signed': false},
-    {'id': 'S003', 'name': 'Cora Dela Cruz', 'course': 'BSIT', 'year': 4, 'signed': true},
-  ];
+  final SignatureController _adminSignatureController = SignatureController(
+    penStrokeWidth: 3,
+    penColor: Colors.blue,
+  );
 
-  void _openStudent(Map<String, dynamic> student) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => StudentSignatureDetail(student: student),
-      ),
-    ).then((updated) {
-      if (updated != null) {
-        setState(() {
-          final index = _students.indexWhere((s) => s['id'] == updated['id']);
-          if (index != -1) _students[index] = updated;
-        });
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Admin Signature Document')),
-      body: ListView.builder(
-        itemCount: _students.length,
-        itemBuilder: (context, i) {
-          final s = _students[i];
-          return ListTile(
-            leading: CircleAvatar(child: Text(s['name'][0])),
-            title: Text(s['name']),
-            subtitle: Text('${s['course']} • Year ${s['year']}'),
-            trailing: Icon(
-              s['signed'] ? Icons.check_circle : Icons.edit,
-              color: s['signed'] ? Colors.green : Colors.grey,
-            ),
-            onTap: () => _openStudent(s),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class StudentSignatureDetail extends StatefulWidget {
-  final Map<String, dynamic> student;
-  const StudentSignatureDetail({Key? key, required this.student}) : super(key: key);
-
-  @override
-  State<StudentSignatureDetail> createState() => _StudentSignatureDetailState();
-}
-
-class _StudentSignatureDetailState extends State<StudentSignatureDetail> {
-  late SignatureController _controller;
+  List<String> _students = [];
+  String? _selectedStudent;
+  List<Map<String, dynamic>> _studentTasks = [];
 
   @override
   void initState() {
     super.initState();
-    _controller = SignatureController(penStrokeWidth: 2, penColor: Colors.black);
+    _loadStudents();
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  Future<void> _loadStudents() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys();
+    final studentNames = keys
+        .where((key) => key.startsWith('tasks_'))
+        .map((key) => key.replaceFirst('tasks_', ''))
+        .toList();
+
+    setState(() {
+      _students = studentNames;
+    });
   }
 
-  void _saveSignature() {
-    if (_controller.isEmpty) {
+  Future<void> _loadStudentTasks(String username) async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('tasks_$username');
+    if (data == null) return;
+
+    final List<dynamic> decoded = jsonDecode(data);
+    setState(() {
+      _selectedStudent = username;
+      _studentTasks = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+    });
+  }
+
+  Future<void> _approveAndSignTasks() async {
+    if (_selectedStudent == null) return;
+
+    if (_adminSignatureController.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please sign before saving.')),
+        const SnackBar(content: Text('Please add your signature first')),
       );
       return;
     }
-    setState(() => widget.student['signed'] = true);
-    Navigator.pop(context, widget.student);
+
+    final Uint8List? adminSig = await _adminSignatureController.toPngBytes();
+    if (adminSig == null) return;
+
+    final adminSigEncoded = base64Encode(adminSig);
+
+    // Update approval status and save
+    for (var task in _studentTasks) {
+      task['approved'] = true;
+      task['adminSignature'] = adminSigEncoded;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('tasks_$_selectedStudent', jsonEncode(_studentTasks));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Tasks approved and signed for $_selectedStudent')),
+    );
+
+    setState(() {
+      _adminSignatureController.clear();
+      _selectedStudent = null;
+      _studentTasks = [];
+    });
   }
 
-  void _clearSignature() => _controller.clear();
+  // 🧱 UI: Student List
+  Widget _buildStudentList() {
+    return ListView.builder(
+      itemCount: _students.length,
+      itemBuilder: (context, index) {
+        final student = _students[index];
+        return ListTile(
+          leading: const Icon(Icons.person, color: Colors.blue),
+          title: Text(student),
+          subtitle: const Text("Tap to view logged tasks"),
+          onTap: () => _loadStudentTasks(student),
+        );
+      },
+    );
+  }
+
+  // 🧱 UI: Student Task List + Signature
+  Widget _buildTaskDetails() {
+    if (_selectedStudent == null) {
+      return const Center(
+        child: Text(
+          "Select a student to review their tasks",
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Tasks of $_selectedStudent",
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const Divider(),
+        Expanded(
+          child: ListView.builder(
+            itemCount: _studentTasks.length,
+            itemBuilder: (context, index) {
+              final task = _studentTasks[index];
+              return Card(
+                child: ListTile(
+                  title: Text(task['task']),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Hours: ${task['hours']}"),
+                      Text(
+                        task['approved']
+                            ? "Status: Approved ✅"
+                            : "Status: Pending ⏳",
+                        style: TextStyle(
+                          color: task['approved'] ? Colors.green : Colors.orange,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          "Admin Signature:",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          height: 120,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.black54),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Signature(
+            controller: _adminSignatureController,
+            backgroundColor: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton.icon(
+              icon: const Icon(Icons.check),
+              label: const Text("Approve & Sign"),
+              onPressed: _approveAndSignTasks,
+            ),
+            const SizedBox(width: 10),
+            OutlinedButton(
+              onPressed: () => _adminSignatureController.clear(),
+              child: const Text("Clear"),
+            ),
+          ],
+        )
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final s = widget.student;
     return Scaffold(
-      appBar: AppBar(title: Text(s['name'])),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Card(
-              child: ListTile(
-                title: Text(s['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text('${s['course']} • Year ${s['year']}'),
-              ),
+      appBar: AppBar(
+        title: const Text("Admin Task Approval & Signature"),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF0A2E63), Color(0xFF1E88E5)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            const SizedBox(height: 20),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text('Signature Area:', style: TextStyle(fontWeight: FontWeight.w600)),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  color: Colors.white,
-                ),
-                child: Signature(controller: _controller, backgroundColor: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _saveSignature,
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save'),
-                ),
-                const SizedBox(width: 10),
-                OutlinedButton.icon(
-                  onPressed: _clearSignature,
-                  icon: const Icon(Icons.clear),
-                  label: const Text('Clear'),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
+      ),
+      body: Row(
+        children: [
+          // Left: Student List
+          Expanded(
+            flex: 2,
+            child: Container(
+              color: Colors.blue.shade50,
+              child: _buildStudentList(),
+            ),
+          ),
+          // Right: Task + Signature
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: _buildTaskDetails(),
+            ),
+          ),
+        ],
       ),
     );
   }
