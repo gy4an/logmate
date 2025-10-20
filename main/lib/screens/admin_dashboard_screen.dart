@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'log_task_screen.dart';
 import 'login_screen.dart';
+import 'manage_employee_tasks_screen.dart'; // ✅ Connected to Step 2
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
 
+  // --- Logout Confirmation Dialog ---
   Future<bool> _showLogoutDialog(BuildContext context) async {
     final result = await showDialog<bool>(
       context: context,
@@ -26,6 +27,7 @@ class AdminDashboardScreen extends StatelessWidget {
     return result ?? false;
   }
 
+  // --- Dashboard Card Widget ---
   Widget dashboardCard({
     required IconData icon,
     required String title,
@@ -46,7 +48,7 @@ class AdminDashboardScreen extends StatelessWidget {
               color: Colors.black.withOpacity(0.15),
               blurRadius: 6,
               offset: const Offset(2, 4),
-            )
+            ),
           ],
         ),
         child: Column(
@@ -68,6 +70,7 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
+  // --- Main UI ---
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -112,6 +115,8 @@ class AdminDashboardScreen extends StatelessWidget {
           ],
         ),
         backgroundColor: Colors.grey.shade200,
+
+        // --- Dashboard Grid ---
         body: Padding(
           padding: const EdgeInsets.all(12.0),
           child: GridView.count(
@@ -119,24 +124,28 @@ class AdminDashboardScreen extends StatelessWidget {
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
             children: [
+              // ✅ Step 4: Connected Feature
               dashboardCard(
-                icon: Icons.assignment,
-                title: "Log Tasks & Hours",
+                icon: Icons.manage_accounts,
+                title: "Manage Employee Tasks",
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const LogTaskScreen(),
+                      builder: (context) => const ManageEmployeeTasksScreen(),
                     ),
                   );
                 },
               ),
+
+              // --- Placeholder Features ---
               dashboardCard(
                 icon: Icons.feedback,
                 title: "Feedback",
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Coming soon: Feedback')),
+                    const SnackBar(
+                        content: Text('Coming soon: Feedback feature')),
                   );
                 },
               ),
@@ -145,7 +154,8 @@ class AdminDashboardScreen extends StatelessWidget {
                 title: "Sign Documents",
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Coming soon: Signature')),
+                    const SnackBar(
+                        content: Text('Coming soon: Document Signature')),
                   );
                 },
               ),
@@ -154,7 +164,8 @@ class AdminDashboardScreen extends StatelessWidget {
                 title: "Analytics & Reports",
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Coming soon: Analytics')),
+                    const SnackBar(
+                        content: Text('Coming soon: Analytics & Reports')),
                   );
                 },
               ),
@@ -163,7 +174,8 @@ class AdminDashboardScreen extends StatelessWidget {
                 title: "Supervisor View",
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Coming soon: Supervisor Dashboard')),
+                    const SnackBar(
+                        content: Text('Coming soon: Supervisor Dashboard')),
                   );
                 },
               ),
