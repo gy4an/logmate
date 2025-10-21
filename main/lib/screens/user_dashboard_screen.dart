@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'log_task_screen.dart';
 import 'login_screen.dart';
-import 'user_analytics_screen.dart'; // ✅ import the analytics report screen
+import 'user_analytics_screen.dart';
+import 'user_feedback_screen.dart'; // ✅ added import
 
 class UserDashboardScreen extends StatelessWidget {
-  final String username; // ✅ receive the username
+  final String username;
 
   const UserDashboardScreen({super.key, required this.username});
 
@@ -138,8 +139,12 @@ class UserDashboardScreen extends StatelessWidget {
                 icon: Icons.feedback,
                 title: "Feedback",
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Coming soon: Feedback')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const UserFeedbackScreen(), // ✅ now goes to FeedbackScreen
+                    ),
                   );
                 },
               ),
@@ -147,7 +152,6 @@ class UserDashboardScreen extends StatelessWidget {
                 icon: Icons.analytics,
                 title: "Reports",
                 onTap: () {
-                  // ✅ Go to analytics screen
                   Navigator.push(
                     context,
                     MaterialPageRoute(
