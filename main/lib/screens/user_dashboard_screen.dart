@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'log_task_screen.dart';
 import 'login_screen.dart';
-import 'user_analytics_screen.dart';
-import 'user_feedback_screen.dart'; // ✅ added import
+import 'user_analytics_screen.dart'; // ✅ import the analytics report screen
 
 class UserDashboardScreen extends StatelessWidget {
   final String username;
@@ -13,7 +12,11 @@ class UserDashboardScreen extends StatelessWidget {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Logout"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          "Logout",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: const Text("Are you sure you want to logout?"),
         actions: [
           TextButton(
@@ -22,6 +25,12 @@ class UserDashboardScreen extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
             child: const Text("Logout"),
           ),
         ],
@@ -33,37 +42,44 @@ class UserDashboardScreen extends StatelessWidget {
   Widget dashboardCard({
     required IconData icon,
     required String title,
+    required List<Color> colors,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
       onTap: onTap,
-      child: Container(
+      splashColor: colors.last.withOpacity(0.3),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.blue.shade400, Colors.blue.shade800],
+            colors: colors,
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 6,
-              offset: const Offset(2, 4),
+              color: colors.last.withOpacity(0.25),
+              blurRadius: 10,
+              spreadRadius: 1,
+              offset: const Offset(3, 4),
             ),
           ],
         ),
+        padding: const EdgeInsets.all(18),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: Colors.white),
-            const SizedBox(height: 10),
+            Icon(icon, size: 50, color: Colors.white),
+            const SizedBox(height: 12),
             Text(
               title,
+              textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
               ),
             ),
           ],
@@ -74,6 +90,8 @@ class UserDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const darkBlue = Color(0xFF0A2E63);
+
     return WillPopScope(
       onWillPop: () async {
         final shouldLogout = await _showLogoutDialog(context);
@@ -86,21 +104,19 @@ class UserDashboardScreen extends StatelessWidget {
         return false;
       },
       child: Scaffold(
+        extendBodyBehindAppBar: true,
         appBar: AppBar(
-          title: Text('Welcome, $username 👋'),
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0A2E63), Color(0xFF1E88E5)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
+          title: Text(
+            "User Dashboard",
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
           ),
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Colors.white,
           actions: [
             IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: "Logout",
+              icon: const Icon(Icons.logout_rounded),
               onPressed: () async {
                 final shouldLogout = await _showLogoutDialog(context);
                 if (shouldLogout) {
@@ -139,12 +155,8 @@ class UserDashboardScreen extends StatelessWidget {
                 icon: Icons.feedback,
                 title: "Feedback",
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const UserFeedbackScreen(), // ✅ now goes to FeedbackScreen
-                    ),
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Coming soon: Feedback')),
                   );
                 },
               ),
@@ -152,6 +164,7 @@ class UserDashboardScreen extends StatelessWidget {
                 icon: Icons.analytics,
                 title: "Reports",
                 onTap: () {
+                  // ✅ Go to analytics screen
                   Navigator.push(
                     context,
                     MaterialPageRoute(

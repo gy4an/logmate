@@ -29,7 +29,6 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void initState() {
     super.initState();
-    // Hide status bar
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
 
     loginController = AnimationController(
@@ -130,11 +129,11 @@ class _LoginScreenState extends State<LoginScreen>
           width: MediaQuery.of(context).size.width,
           height: curvedHeight,
           decoration: const BoxDecoration(
-            gradient: const LinearGradient(
-  colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
-  begin: Alignment.topCenter,
-  end: Alignment.bottomCenter,
-),
+            gradient: LinearGradient(
+              colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
             borderRadius: BorderRadius.only(
               bottomLeft: Radius.circular(190),
               bottomRight: Radius.circular(190),
@@ -176,8 +175,12 @@ class _LoginScreenState extends State<LoginScreen>
             padding: const EdgeInsets.symmetric(horizontal: 42),
             child: Column(
               children: <Widget>[
+                // 🧑 Username field
                 TextField(
                   controller: _usernameController,
+                  textCapitalization: TextCapitalization.none, // ✅ disables caps
+                  textInputAction: TextInputAction.next,
+                  keyboardType: TextInputType.text,
                   style: const TextStyle(color: Colors.black, height: 0.5),
                   decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.person),
@@ -188,9 +191,14 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 ),
                 const SizedBox(height: 16),
+
+                // 🔒 Password field
                 TextField(
                   controller: _passwordController,
+                  textCapitalization: TextCapitalization.none, // ✅ disables caps
+                  textInputAction: TextInputAction.done,
                   obscureText: _obscurePassword,
+                  keyboardType: TextInputType.text,
                   style: const TextStyle(color: Colors.black, height: 0.5),
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.vpn_key),
