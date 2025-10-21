@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:main/screens/admin_signature_screen.dart';
-import 'package:main/screens/log_task_screen.dart';
-import 'package:main/screens/login_screen.dart';
-import 'package:main/screens/manage_employee_tasks_screen.dart';
 import 'package:main/screens/admin_analytics_screen.dart';
-
+import 'package:main/screens/manage_employee_tasks_screen.dart';
+import 'package:main/screens/login_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
 
-  // --- Logout Confirmation Dialog ---
   Future<bool> _showLogoutDialog(BuildContext context) async {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Logout"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          "Logout",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: const Text("Are you sure you want to logout?"),
         actions: [
           TextButton(
@@ -23,6 +24,12 @@ class AdminDashboardScreen extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
             child: const Text("Logout"),
           ),
         ],
@@ -31,42 +38,47 @@ class AdminDashboardScreen extends StatelessWidget {
     return result ?? false;
   }
 
-  // --- Dashboard Card Widget ---
   Widget dashboardCard({
     required IconData icon,
     required String title,
+    required List<Color> colors,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
       onTap: onTap,
-      child: Container(
+      splashColor: colors.last.withOpacity(0.3),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.blue.shade400, Colors.blue.shade800],
+            colors: colors,
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 6,
-              offset: const Offset(2, 4),
+              color: colors.last.withOpacity(0.25),
+              blurRadius: 10,
+              spreadRadius: 1,
+              offset: const Offset(3, 4),
             ),
           ],
         ),
+        padding: const EdgeInsets.all(18),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: Colors.white),
-            const SizedBox(height: 10),
+            Icon(icon, size: 50, color: Colors.white),
+            const SizedBox(height: 12),
             Text(
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
               ),
             ),
           ],
@@ -75,9 +87,10 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
-  // --- Main UI ---
   @override
   Widget build(BuildContext context) {
+    const darkBlue = Color(0xFF0A2E63);
+
     return WillPopScope(
       onWillPop: () async {
         final shouldLogout = await _showLogoutDialog(context);
@@ -90,107 +103,139 @@ class AdminDashboardScreen extends StatelessWidget {
         return false;
       },
       child: Scaffold(
+        extendBodyBehindAppBar: true,
         appBar: AppBar(
-          title: const Text('Admin Dashboard'),
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0A2E63), Color(0xFF1E88E5)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
+          title: const Text(
+            "Admin Dashboard",
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
           ),
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Colors.white,
           actions: [
             IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: "Logout",
+              icon: const Icon(Icons.logout_rounded),
               onPressed: () async {
                 final shouldLogout = await _showLogoutDialog(context);
                 if (shouldLogout) {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
                   );
                 }
               },
             ),
           ],
         ),
-        backgroundColor: Colors.grey.shade200,
-
-        // --- Dashboard Grid ---
-        body: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            children: [
-              dashboardCard(
-                icon: Icons.edit_document,
-                title: "Sign Documents",
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AdminSignatureScreen(),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF0A2E63), Color(0xFF1565C0)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Welcome, Admin 👋",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                  );
-                },
-              ),
-              dashboardCard(
-                icon: Icons.analytics,
-                title: "Analytics & Reports",
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AdminAnalyticsScreen(),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Manage your dashboard efficiently.",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 14,
                     ),
-                  );
-                },
-              ),
-              dashboardCard(
-                icon: Icons.supervised_user_circle,
-                title: "Supervisor Dashboard",
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Coming soon: Supervisor View')),
-                  );
-                },
-              ),
-              dashboardCard(
-                icon: Icons.feedback,
-                title: "Feedback",
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Coming soon: Feedback feature')),
-                  );
-                },
-              ),
-              dashboardCard(
-                icon: Icons.manage_accounts,
-                title: "Manage Employee Tasks",
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const ManageEmployeeTasksScreen(),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: GridView.count(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      children: [
+                        dashboardCard(
+                          icon: Icons.edit_document,
+                          title: "Sign Documents",
+                          colors: [Colors.indigo.shade400, Colors.indigo.shade700],
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AdminSignatureScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        dashboardCard(
+                          icon: Icons.analytics_outlined,
+                          title: "Analytics & Reports",
+                          colors: [Colors.teal.shade400, Colors.teal.shade700],
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AdminAnalyticsScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        dashboardCard(
+                          icon: Icons.manage_accounts_outlined,
+                          title: "Manage Employee Tasks",
+                          colors: [Colors.deepPurple.shade400, Colors.deepPurple.shade700],
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const ManageEmployeeTasksScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        dashboardCard(
+                          icon: Icons.feedback_outlined,
+                          title: "Feedback",
+                          colors: [Colors.orange.shade400, Colors.orange.shade700],
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Coming soon: Feedback feature')),
+                            );
+                          },
+                        ),
+                        dashboardCard(
+                          icon: Icons.supervised_user_circle_outlined,
+                          title: "Supervisor Dashboard",
+                          colors: [Colors.pinkAccent.shade400, Colors.pink.shade700],
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Coming soon: Supervisor View')),
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                  );
-                },
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 }
-
