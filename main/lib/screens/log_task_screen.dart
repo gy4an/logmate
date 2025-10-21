@@ -85,8 +85,10 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF6F8FB),
       appBar: AppBar(
-        title: const Text('Log Task & Hours'),
+        title: const Text('Log Task & Hours', style: TextStyle(fontWeight: FontWeight.bold)),
+        elevation: 0,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -97,98 +99,156 @@ class _LogTaskScreenState extends State<LogTaskScreen> {
           ),
         ),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Task Description:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              TextField(
-                controller: _taskController,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter task description',
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Hours Worked:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              TextField(
-                controller: _hoursController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter hours worked',
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Signature:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Container(
-                height: 150,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                ),
-                child: Signature(
-                  controller: _signatureController,
-                  backgroundColor: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  ElevatedButton(
-                    onPressed: () => _signatureController.clear(),
-                    child: const Text('Clear Signature'),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton(
-                    onPressed: _saveTask,
-                    child: const Text('Save Task'),
+        child: Column(
+          children: [
+            // 📋 Task Input Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              const Divider(),
-              const Text(
-                'Your Logged Tasks:',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Task Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _taskController,
+                    decoration: InputDecoration(
+                      hintText: 'Enter task description...',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Hours Worked', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _hoursController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: 'Enter number of hours...',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Signature', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  Container(
+                    height: 160,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Signature(
+                      controller: _signatureController,
+                      backgroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () => _signatureController.clear(),
+                        icon: const Icon(Icons.clear),
+                        label: const Text('Clear'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[300],
+                          foregroundColor: Colors.black87,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: _saveTask,
+                        icon: const Icon(Icons.save),
+                        label: const Text('Save Task'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E88E5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-              ..._tasks.map((task) => Card(
+            ),
+
+            const SizedBox(height: 24),
+
+            // 📄 Logged Tasks
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Your Logged Tasks',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            if (_tasks.isEmpty)
+              const Text(
+                "No tasks logged yet.",
+                style: TextStyle(color: Colors.grey),
+              )
+            else
+              Column(
+                children: _tasks.map((task) {
+                  return Card(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 2,
                     margin: const EdgeInsets.symmetric(vertical: 6),
                     child: ListTile(
-                      title: Text(task['task']),
+                      leading: CircleAvatar(
+                        backgroundColor: const Color(0xFF1E88E5).withOpacity(0.15),
+                        child: const Icon(Icons.task_alt, color: Color(0xFF1E88E5)),
+                      ),
+                      title: Text(task['task'], style: const TextStyle(fontWeight: FontWeight.w600)),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          const SizedBox(height: 4),
                           Text('Hours: ${task['hours']}'),
                           const SizedBox(height: 4),
                           Text(
-                            task['approved']
-                                ? 'Status: Approved ✅'
-                                : 'Status: Pending ⏳',
+                            task['approved'] ? 'Status: Approved ✅' : 'Status: Pending ⏳',
                             style: TextStyle(
-                              color: task['approved']
-                                  ? Colors.green
-                                  : Colors.orange,
+                              color: task['approved'] ? Colors.green : Colors.orange,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  )),
-            ],
-          ),
+                  );
+                }).toList(),
+              ),
+          ],
         ),
       ),
     );
