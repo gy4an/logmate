@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:main/screens/admin_feedback_list_screen.dart';
 import 'package:main/screens/admin_signature_screen.dart';
 import 'package:main/screens/admin_analytics_screen.dart';
 import 'package:main/screens/manage_employee_tasks_screen.dart';
@@ -87,6 +88,50 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
+  Widget summaryCard(String title, String value, Color color, IconData icon) {
+    return Expanded(
+      child: Container(
+        height: 90,
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.4)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: color.withOpacity(0.25),
+                child: Icon(icon, color: color),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(title,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 13,
+                      )),
+                  const SizedBox(height: 4),
+                  Text(value,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      )),
+                ],
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const darkBlue = Color(0xFF0A2E63);
@@ -152,13 +197,31 @@ class AdminDashboardScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    "Manage your dashboard efficiently.",
+                    "Here’s today’s summary and management tools.",
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.9),
                       fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 20),
+
+                  // ✅ Summary Section
+                  Row(
+                    children: [
+                      summaryCard("Students", "24", Colors.teal, Icons.people),
+                      summaryCard("Tasks", "58", Colors.amber, Icons.task_alt),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      summaryCard("Pending", "6", Colors.redAccent, Icons.pending_actions),
+                      summaryCard("Attendance", "21", Colors.lightBlueAccent, Icons.calendar_today),
+                    ],
+                  ),
+                  const SizedBox(height: 25),
+
+                  // ✅ Dashboard Cards
                   Expanded(
                     child: GridView.count(
                       crossAxisCount: 2,
@@ -199,8 +262,7 @@ class AdminDashboardScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    const ManageEmployeeTasksScreen(),
+                                builder: (context) => const ManageEmployeeTasksScreen(),
                               ),
                             );
                           },
@@ -210,20 +272,11 @@ class AdminDashboardScreen extends StatelessWidget {
                           title: "Feedback",
                           colors: [Colors.orange.shade400, Colors.orange.shade700],
                           onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Coming soon: Feedback feature')),
-                            );
-                          },
-                        ),
-                        dashboardCard(
-                          icon: Icons.supervised_user_circle_outlined,
-                          title: "Supervisor Dashboard",
-                          colors: [Colors.pinkAccent.shade400, Colors.pink.shade700],
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Coming soon: Supervisor View')),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AdminFeedbackScreen(),
+                              ),
                             );
                           },
                         ),
