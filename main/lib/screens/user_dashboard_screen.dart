@@ -49,7 +49,7 @@ class UserDashboardScreen extends StatelessWidget {
               color: Colors.black.withOpacity(0.15),
               blurRadius: 6,
               offset: const Offset(2, 4),
-            )
+            ),
           ],
         ),
         child: Column(
@@ -140,15 +140,6 @@ class UserDashboardScreen extends StatelessWidget {
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Coming soon: Feedback')),
-                  );
-                },
-              ),
-              dashboardCard(
-                icon: Icons.edit,
-                title: "Sign Doc",
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Coming soon: Signature')),
                   );
                 },
               ),
