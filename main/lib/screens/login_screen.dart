@@ -19,14 +19,16 @@ class _LoginScreenState extends State<LoginScreen>
   final TextEditingController _passwordController = TextEditingController();
 
   bool isLogin = true;
-  late Animation<double> loginSize;
+  bool _obscurePassword = true;
+
   late AnimationController loginController;
-  Duration animationDuration = const Duration(milliseconds: 270);
+  late Animation<double> loginSize;
+
+  final Duration animationDuration = const Duration(milliseconds: 500);
 
   @override
   void initState() {
     super.initState();
-
     // Hide status bar
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
 
@@ -78,7 +80,6 @@ class _LoginScreenState extends State<LoginScreen>
       return;
     }
 
-    // ✅ Login successful → navigate based on stored role
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Welcome, ${user['username']}!')),
     );
@@ -116,38 +117,52 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _buildLoginHeader() {
-    return Container(
-      padding: const EdgeInsets.only(bottom: 62, top: 16),
-      width: MediaQuery.of(context).size.width,
-      height: loginSize.value,
-      decoration: const BoxDecoration(
-        color: Color(0XFF2a3ed7),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(190),
-          bottomRight: Radius.circular(190),
-        ),
-      ),
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: GestureDetector(
-          onTap: isLogin
-              ? null
-              : () {
-                  loginController.reverse();
-                  setState(() {
-                    isLogin = !isLogin;
-                  });
-                },
-          child: const Text(
-            'LOG IN',
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+    return AnimatedBuilder(
+      animation: loginController,
+      builder: (context, child) {
+        final double curvedHeight = Tween<double>(
+          begin: MediaQuery.of(context).size.height / 1.6,
+          end: 220,
+        ).evaluate(CurvedAnimation(parent: loginController, curve: Curves.easeInOut));
+
+        return Container(
+          padding: const EdgeInsets.only(bottom: 62, top: 16),
+          width: MediaQuery.of(context).size.width,
+          height: curvedHeight,
+          decoration: const BoxDecoration(
+            gradient: const LinearGradient(
+  colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+),
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(190),
+              bottomRight: Radius.circular(190),
             ),
           ),
-        ),
-      ),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: GestureDetector(
+              onTap: isLogin
+                  ? null
+                  : () {
+                      loginController.reverse();
+                      setState(() {
+                        isLogin = !isLogin;
+                      });
+                    },
+              child: const Text(
+                'LOG IN',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -175,13 +190,25 @@ class _LoginScreenState extends State<LoginScreen>
                 const SizedBox(height: 16),
                 TextField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: _obscurePassword,
                   style: const TextStyle(color: Colors.black, height: 0.5),
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.vpn_key),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.vpn_key),
                     hintText: 'Password',
-                    border: OutlineInputBorder(
+                    border: const OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(32)),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
                     ),
                   ),
                 ),
@@ -214,56 +241,48 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildRegisterComponents() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 42, vertical: 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const Padding(
-            padding: EdgeInsets.only(bottom: 32),
-            child: Text(
-              'Sign Up',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Color(0XFF2a3ed7),
+  Widget _buildBottomButton() {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        color: isLogin && !loginController.isAnimating
+            ? Colors.white
+            : Colors.transparent,
+        width: MediaQuery.of(context).size.width,
+        height: MediaQuery.of(context).size.height / 3.5,
+        child: Visibility(
+          visible: isLogin,
+          child: GestureDetector(
+            onTap: () {
+              loginController.forward();
+              setState(() {
+                isLogin = !isLogin;
+              });
+              Future.delayed(animationDuration, _goToSignup);
+            },
+            child: const Center(
+              child: Text(
+                'Sign Up',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0XFF2a3ed7),
+                ),
               ),
             ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0XFF2a3ed7),
-              foregroundColor: Colors.white,
-            ),
-            onPressed: _goToSignup,
-            child: const Text("Go to Sign Up"),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final double defaultLoginSize = MediaQuery.of(context).size.height / 1.6;
-
-    loginSize = Tween<double>(
-      begin: defaultLoginSize,
-      end: 200,
-    ).animate(CurvedAnimation(parent: loginController, curve: Curves.linear));
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: <Widget>[
-          // Blue arc header
-          AnimatedBuilder(
-            animation: loginController,
-            builder: (context, child) => _buildLoginHeader(),
-          ),
-
-          // Login form
+          _buildLoginHeader(),
           Align(
             alignment: Alignment.topCenter,
             child: SizedBox(
@@ -272,52 +291,7 @@ class _LoginScreenState extends State<LoginScreen>
               child: Center(child: _buildLoginForm()),
             ),
           ),
-
-          // "Sign Up" button at bottom
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              color: isLogin && !loginController.isAnimating
-                  ? Colors.white
-                  : Colors.transparent,
-              width: MediaQuery.of(context).size.width,
-              height: defaultLoginSize / 1.5,
-              child: Visibility(
-                visible: isLogin,
-                child: GestureDetector(
-                  onTap: () {
-                    loginController.forward();
-                    setState(() {
-                      isLogin = !isLogin;
-                    });
-                  },
-                  child: const Center(
-                    child: Text(
-                      'Sign Up',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0XFF2a3ed7),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Slide-up signup
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: IgnorePointer(
-              ignoring: isLogin,
-              child: AnimatedOpacity(
-                opacity: isLogin ? 0.0 : 1.0,
-                duration: animationDuration,
-                child: _buildRegisterComponents(),
-              ),
-            ),
-          ),
+          _buildBottomButton(),
         ],
       ),
     );
