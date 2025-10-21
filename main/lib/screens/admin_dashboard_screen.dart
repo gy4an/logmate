@@ -3,6 +3,7 @@ import 'package:main/screens/admin_signature_screen.dart';
 import 'package:main/screens/log_task_screen.dart';
 import 'package:main/screens/login_screen.dart';
 import 'package:main/screens/manage_employee_tasks_screen.dart';
+import 'package:main/screens/admin_analytics_screen.dart';
 
 
 class AdminDashboardScreen extends StatelessWidget {
@@ -144,9 +145,11 @@ class AdminDashboardScreen extends StatelessWidget {
                 icon: Icons.analytics,
                 title: "Analytics & Reports",
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Coming soon: Analytics & Reports')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AdminAnalyticsScreen(),
+                    ),
                   );
                 },
               ),
