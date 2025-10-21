@@ -10,11 +10,12 @@ class EmployeeTaskListScreen extends StatefulWidget {
   State<EmployeeTaskListScreen> createState() => _EmployeeTaskListScreenState();
 }
 
-class _EmployeeTaskListScreenState extends State<EmployeeTaskListScreen> {
-  List<Map<String, dynamic>> _tasks = [];
-
+class _EmployeeTaskListScreenState extends State<EmployeeTaskListScreen>
+    with SingleTickerProviderStateMixin {
+  final List<Map<String, dynamic>> _tasks = [];
   final _taskController = TextEditingController();
   final _hoursController = TextEditingController();
+  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
 
   @override
   void initState() {
@@ -27,9 +28,10 @@ class _EmployeeTaskListScreenState extends State<EmployeeTaskListScreen> {
     final String? tasksJson = prefs.getString('tasks_${widget.username}');
     if (tasksJson != null) {
       final List<dynamic> decoded = jsonDecode(tasksJson);
-      setState(() {
-        _tasks = decoded.map((t) => Map<String, dynamic>.from(t)).toList();
-      });
+      for (var task in decoded) {
+        _tasks.add(Map<String, dynamic>.from(task));
+      }
+      setState(() {});
     }
   }
 
@@ -41,21 +43,29 @@ class _EmployeeTaskListScreenState extends State<EmployeeTaskListScreen> {
   void _addTask() {
     final taskName = _taskController.text.trim();
     final hours = _hoursController.text.trim();
-
     if (taskName.isEmpty || hours.isEmpty) return;
 
-    setState(() {
-      _tasks.add({'task': taskName, 'hours': hours});
-    });
-    _saveTasks();
+    final newTask = {'task': taskName, 'hours': hours};
 
+    setState(() {
+      _tasks.insert(0, newTask);
+      _listKey.currentState?.insertItem(0);
+    });
+
+    _saveTasks();
     _taskController.clear();
     _hoursController.clear();
   }
 
-  void _deleteTask(int index) async {
+  void _deleteTask(int index) {
+    final removedTask = _tasks[index];
     setState(() {
       _tasks.removeAt(index);
+      _listKey.currentState?.removeItem(
+        index,
+        (context, animation) => _buildTaskCard(removedTask, animation),
+        duration: const Duration(milliseconds: 300),
+      );
     });
     _saveTasks();
   }
@@ -63,91 +73,149 @@ class _EmployeeTaskListScreenState extends State<EmployeeTaskListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${widget.username} - Tasks'),
-        flexibleSpace: Container(
+      backgroundColor: Colors.grey[100],
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(110),
+        child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF0A2E63), Color(0xFF1E88E5)],
+              colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
+            ),
+          ),
+          child: AppBar(
+            title: Text(
+              "${widget.username} - Tasks",
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            centerTitle: true,
           ),
         ),
       ),
-      backgroundColor: Colors.grey.shade100,
       body: Column(
         children: [
-          // Add Task Section
+          const SizedBox(height: 12),
+          // 🧩 Task Input Section
           Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: TextField(
-                    controller: _taskController,
-                    decoration: const InputDecoration(
-                      labelText: 'Task name',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 1,
-                  child: TextField(
-                    controller: _hoursController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Hours',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: _addTask,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue.shade800,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 16),
-                  ),
-                  child: const Icon(Icons.add, color: Colors.white),
-                ),
-              ],
-            ),
-          ),
-          const Divider(),
-          // Task List
-          Expanded(
-            child: _tasks.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No tasks logged yet.',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: _tasks.length,
-                    itemBuilder: (context, index) {
-                      final task = _tasks[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        child: ListTile(
-                          title: Text(task['task']),
-                          subtitle: Text('Hours: ${task['hours']}'),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _deleteTask(index),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: TextField(
+                        controller: _taskController,
+                        decoration: InputDecoration(
+                          labelText: 'Task name',
+                          prefixIcon: const Icon(Icons.work_outline),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 1,
+                      child: TextField(
+                        controller: _hoursController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Hours',
+                          prefixIcon: const Icon(Icons.access_time_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: _addTask,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(16),
+                        elevation: 4,
+                      ),
+                      child: const Icon(Icons.add, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // 🧩 Task List Section
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _tasks.isEmpty
+                    ? const Center(
+                        key: ValueKey('empty'),
+                        child: Text(
+                          'No tasks logged yet.',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      )
+                    : AnimatedList(
+                        key: _listKey,
+                        initialItemCount: _tasks.length,
+                        itemBuilder: (context, index, animation) {
+                          final task = _tasks[index];
+                          return _buildTaskCard(task, animation, index);
+                        },
+                      ),
+              ),
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTaskCard(Map<String, dynamic> task, Animation<double> animation,
+      [int? index]) {
+    return SizeTransition(
+      sizeFactor: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+      child: Card(
+        elevation: 2,
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: ListTile(
+          leading: const CircleAvatar(
+            backgroundColor: Colors.blueAccent,
+            child: Icon(Icons.task, color: Colors.white),
+          ),
+          title: Text(
+            task['task'],
+            style: const TextStyle(
+                fontWeight: FontWeight.w600, color: Colors.black87),
+          ),
+          subtitle: Text('Hours: ${task['hours']}'),
+          trailing: IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+            onPressed: index != null ? () => _deleteTask(index) : null,
+          ),
+        ),
       ),
     );
   }

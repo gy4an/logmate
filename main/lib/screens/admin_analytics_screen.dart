@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,15 +10,37 @@ class AdminAnalyticsScreen extends StatefulWidget {
   State<AdminAnalyticsScreen> createState() => _AdminAnalyticsScreenState();
 }
 
-class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
+class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
+    with SingleTickerProviderStateMixin {
   List<String> _students = [];
   String? _selectedStudent;
   List<Map<String, dynamic>> _studentTasks = [];
+
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
     _loadStudents();
+
+    // 🔄 Smooth animation setup
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   Future<void> _loadStudents() async {
@@ -27,9 +50,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
         .where((key) => key.startsWith('tasks_'))
         .map((key) => key.replaceFirst('tasks_', ''))
         .toList();
-    setState(() {
-      _students = names;
-    });
+    setState(() => _students = names);
   }
 
   Future<void> _loadStudentData(String username) async {
@@ -41,12 +62,11 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
       _selectedStudent = username;
       _studentTasks = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
     });
+    _controller.forward(from: 0);
   }
 
-  double getTotalHours() {
-    return _studentTasks.fold(
-        0, (sum, item) => sum + double.tryParse(item['hours'] ?? '0')!);
-  }
+  double getTotalHours() => _studentTasks.fold(
+      0, (sum, item) => sum + double.tryParse(item['hours'] ?? '0')!);
 
   int getApprovedCount() =>
       _studentTasks.where((task) => task['approved'] == true).length;
@@ -57,55 +77,107 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        centerTitle: true,
         title: const Text(
           "Admin Analytics & Reports",
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        iconTheme: const IconThemeData(color: Colors.black87),
-      ),
-      body: _selectedStudent == null
-          ? _buildStudentList()
-          : _buildStudentAnalytics(),
-    );
-  }
-
-  // 🧩 1. Student List View
-  Widget _buildStudentList() {
-    return ListView.builder(
-      itemCount: _students.length,
-      padding: const EdgeInsets.all(16),
-      itemBuilder: (context, index) {
-        final name = _students[index];
-        return Card(
-          elevation: 0,
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          color: Colors.white,
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.blue.shade100,
-              child: const Icon(Icons.person, color: Colors.blue),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF0A2E63), Color(0xFF1E88E5)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            title: Text(
-              name,
-              style: const TextStyle(
-                  fontWeight: FontWeight.w600, color: Colors.black87),
-            ),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () => _loadStudentData(name),
           ),
-        );
-      },
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0A2E63), Color(0xFF1E88E5)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 500),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          child: _selectedStudent == null
+              ? _buildStudentList()
+              : FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: _buildStudentAnalytics(),
+                  ),
+                ),
+        ),
+      ),
     );
   }
 
-  // 🧩 2. Student Analytics View
+  // 📋 Student List
+  Widget _buildStudentList() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 100, left: 16, right: 16),
+      child: _students.isEmpty
+          ? const Center(
+              child: Text("No students found",
+                  style: TextStyle(color: Colors.white70, fontSize: 18)),
+            )
+          : ListView.builder(
+              itemCount: _students.length,
+              itemBuilder: (context, index) {
+                final name = _students[index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 400),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          border: Border.all(
+                              color: Colors.white.withOpacity(0.25), width: 1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 16),
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.white24,
+                            child: const Icon(Icons.person, color: Colors.white),
+                          ),
+                          title: Text(
+                            name,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16),
+                          ),
+                          trailing: const Icon(Icons.arrow_forward_ios,
+                              color: Colors.white70, size: 16),
+                          onTap: () => _loadStudentData(name),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  // 📊 Student Analytics
   Widget _buildStudentAnalytics() {
     final totalTasks = _studentTasks.length;
     final totalHours = getTotalHours();
@@ -113,71 +185,83 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
     final pending = getPendingCount();
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 100, 16, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Back button
           TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
             onPressed: () => setState(() => _selectedStudent = null),
             icon: const Icon(Icons.arrow_back_ios, size: 16),
             label: const Text("Back to Students"),
           ),
-          const SizedBox(height: 10),
 
+          const SizedBox(height: 10),
           Text(
             _selectedStudent ?? '',
             style: const TextStyle(
-                fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          const SizedBox(height: 8),
-          Text(
-            "Total Logged Tasks: $totalTasks",
-            style: const TextStyle(color: Colors.black54),
-          ),
+          Text("Total Logged Tasks: $totalTasks",
+              style: const TextStyle(color: Colors.white70)),
+
           const SizedBox(height: 20),
 
-          // Summary minimalist cards
+          // Animated Info Cards
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildInfoCard("Total Hours", totalHours.toStringAsFixed(1),
-                  Icons.access_time, Colors.blue.shade400),
-              _buildInfoCard("Approved", "$approved", Icons.check_circle,
-                  Colors.green.shade400),
+                  Icons.access_time, Colors.blueAccent),
+              _buildInfoCard(
+                  "Approved", "$approved", Icons.check_circle, Colors.greenAccent),
               _buildInfoCard("Pending", "$pending", Icons.pending_actions,
-                  Colors.orange.shade400),
+                  Colors.orangeAccent),
             ],
           ),
+          const SizedBox(height: 30),
 
-          const SizedBox(height: 20),
+          const Text("Task Details",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16)),
 
-          const Text(
-            "Task Details",
-            style: TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
+
           Expanded(
             child: ListView.builder(
               itemCount: _studentTasks.length,
               itemBuilder: (context, index) {
                 final task = _studentTasks[index];
-                return Card(
-                  elevation: 0,
-                  color: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                final approved = task['approved'] == true;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOut,
                   margin: const EdgeInsets.symmetric(vertical: 6),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: approved
+                        ? Colors.white.withOpacity(0.15)
+                        : Colors.white.withOpacity(0.08),
+                    border: Border.all(
+                        color: approved
+                            ? Colors.greenAccent.withOpacity(0.4)
+                            : Colors.white.withOpacity(0.2)),
+                  ),
                   child: ListTile(
-                    title: Text(task['task']),
-                    subtitle: Text("Hours: ${task['hours']}"),
+                    title: Text(task['task'],
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15)),
+                    subtitle: Text("Hours: ${task['hours']}",
+                        style: const TextStyle(color: Colors.white70)),
                     trailing: Icon(
-                      task['approved']
-                          ? Icons.check_circle
-                          : Icons.hourglass_empty,
+                      approved ? Icons.check_circle : Icons.hourglass_empty,
                       color:
-                          task['approved'] ? Colors.green : Colors.orangeAccent,
+                          approved ? Colors.greenAccent : Colors.orangeAccent,
                     ),
                   ),
                 );
@@ -189,38 +273,41 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
     );
   }
 
+  // 🪄 Info Card Widget
   Widget _buildInfoCard(
       String label, String value, IconData icon, Color color) {
     return Expanded(
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
         margin: const EdgeInsets.symmetric(horizontal: 4),
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white.withOpacity(0.15),
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withOpacity(0.25)),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.shade300,
-              blurRadius: 6,
-              offset: const Offset(2, 2),
+              color: color.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 26),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black54),
-            ),
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 6),
+            Text(label,
+                style: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13)),
             const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-            ),
+            Text(value,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18)),
           ],
         ),
       ),
