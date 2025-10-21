@@ -28,7 +28,7 @@ class UserDashboardScreen extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8), // fixed here ✅
               ),
             ),
             child: const Text("Logout"),
@@ -106,9 +106,9 @@ class UserDashboardScreen extends StatelessWidget {
       child: Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
-          title: Text(
+          title: const Text(
             "User Dashboard",
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
           ),
           centerTitle: true,
           backgroundColor: Colors.transparent,
@@ -122,7 +122,9 @@ class UserDashboardScreen extends StatelessWidget {
                 if (shouldLogout) {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
                   );
                 }
               },
@@ -169,7 +171,10 @@ class UserDashboardScreen extends StatelessWidget {
                         dashboardCard(
                           icon: Icons.assignment_outlined,
                           title: "Log Tasks",
-                          colors: [Colors.indigo.shade400, Colors.indigo.shade700],
+                          colors: [
+                            Colors.indigo.shade400,
+                            Colors.indigo.shade700,
+                          ],
                           onTap: () {
                             Navigator.push(
                               context,
@@ -183,11 +188,15 @@ class UserDashboardScreen extends StatelessWidget {
                         dashboardCard(
                           icon: Icons.feedback_outlined,
                           title: "Feedback",
-                          colors: [Colors.orange.shade400, Colors.orange.shade700],
+                          colors: [
+                            Colors.orange.shade400,
+                            Colors.orange.shade700,
+                          ],
                           onTap: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                  content: Text('Coming soon: Feedback feature')),
+                                content: Text('Coming soon: Feedback feature'),
+                              ),
                             );
                           },
                         ),
