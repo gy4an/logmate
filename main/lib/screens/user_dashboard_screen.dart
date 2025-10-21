@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:main/screens/user_feedback_screen.dart';
 import 'log_task_screen.dart';
 import 'login_screen.dart';
 import 'user_analytics_screen.dart';
@@ -193,9 +194,11 @@ class UserDashboardScreen extends StatelessWidget {
                             Colors.orange.shade700,
                           ],
                           onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Coming soon: Feedback feature'),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const UserFeedbackScreen(),
                               ),
                             );
                           },
