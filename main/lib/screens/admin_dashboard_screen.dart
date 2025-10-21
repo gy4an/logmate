@@ -1,35 +1,84 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:main/screens/admin_feedback_list_screen.dart';
 import 'package:main/screens/admin_signature_screen.dart';
 import 'package:main/screens/admin_analytics_screen.dart';
 import 'package:main/screens/manage_employee_tasks_screen.dart';
 import 'package:main/screens/login_screen.dart';
 
-class AdminDashboardScreen extends StatelessWidget {
+class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
+
+  @override
+  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+  int _studentCount = 0;
+  int _taskCount = 0;
+  int _pendingCount = 0;
+  int _attendanceCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSummaryData();
+  }
+
+  Future<void> _loadSummaryData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys();
+
+    int totalTasks = 0;
+    int pendingTasks = 0;
+    int attendance = 0;
+    int students = 0;
+
+    for (String key in keys) {
+      if (key.startsWith("tasks_")) {
+        students++;
+        final String? jsonData = prefs.getString(key);
+        if (jsonData != null) {
+          final List<dynamic> tasks = jsonDecode(jsonData);
+
+          totalTasks += tasks.length;
+
+          for (var t in tasks) {
+            if (t is Map<String, dynamic>) {
+              final status = t['status'] ?? 'Pending';
+              final hours = double.tryParse(t['hours']?.toString() ?? '0') ?? 0;
+
+              if (status != 'Completed') pendingTasks++;
+              if (hours > 0) attendance++;
+            }
+          }
+        }
+      }
+    }
+
+    setState(() {
+      _studentCount = students;
+      _taskCount = totalTasks;
+      _pendingCount = pendingTasks;
+      _attendanceCount = attendance;
+    });
+  }
 
   Future<bool> _showLogoutDialog(BuildContext context) async {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text(
-          "Logout",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text("Logout", style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text("Are you sure you want to logout?"),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text("Logout"),
           ),
@@ -37,6 +86,50 @@ class AdminDashboardScreen extends StatelessWidget {
       ),
     );
     return result ?? false;
+  }
+
+  Widget summaryCard(String title, String value, Color color, IconData icon) {
+    return Expanded(
+      child: Container(
+        height: 90,
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.4)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: color.withOpacity(0.25),
+                child: Icon(icon, color: color),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(title,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 13,
+                      )),
+                  const SizedBox(height: 4),
+                  Text(value,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      )),
+                ],
+              )
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget dashboardCard({
@@ -88,50 +181,6 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget summaryCard(String title, String value, Color color, IconData icon) {
-    return Expanded(
-      child: Container(
-        height: 90,
-        margin: const EdgeInsets.symmetric(horizontal: 6),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.4)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: color.withOpacity(0.25),
-                child: Icon(icon, color: color),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(title,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 13,
-                      )),
-                  const SizedBox(height: 4),
-                  Text(value,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      )),
-                ],
-              )
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     const darkBlue = Color(0xFF0A2E63);
@@ -150,15 +199,17 @@ class AdminDashboardScreen extends StatelessWidget {
       child: Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
-          title: const Text(
-            "Admin Dashboard",
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
-          ),
+          title: const Text("Admin Dashboard",
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
           foregroundColor: Colors.white,
           actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: _loadSummaryData, // 🔄 Manual refresh button
+            ),
             IconButton(
               icon: const Icon(Icons.logout_rounded),
               onPressed: () async {
@@ -187,14 +238,12 @@ class AdminDashboardScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Welcome, Admin 👋",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  const Text("Welcome, Admin 👋",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      )),
                   const SizedBox(height: 6),
                   Text(
                     "Here’s today’s summary and management tools.",
@@ -205,18 +254,18 @@ class AdminDashboardScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
 
-                  // ✅ Summary Section
+                  // ✅ Dynamic Summary Section
                   Row(
                     children: [
-                      summaryCard("Students", "24", Colors.teal, Icons.people),
-                      summaryCard("Tasks", "58", Colors.amber, Icons.task_alt),
+                      summaryCard("Students", "$_studentCount", Colors.teal, Icons.people),
+                      summaryCard("Tasks", "$_taskCount", Colors.amber, Icons.task_alt),
                     ],
                   ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      summaryCard("Pending", "6", Colors.redAccent, Icons.pending_actions),
-                      summaryCard("Attendance", "21", Colors.lightBlueAccent, Icons.calendar_today),
+                      summaryCard("Pending", "$_pendingCount", Colors.redAccent, Icons.pending_actions),
+                      summaryCard("Attendance", "$_attendanceCount", Colors.lightBlueAccent, Icons.calendar_today),
                     ],
                   ),
                   const SizedBox(height: 25),
@@ -235,9 +284,7 @@ class AdminDashboardScreen extends StatelessWidget {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => const AdminSignatureScreen(),
-                              ),
+                              MaterialPageRoute(builder: (context) => const AdminSignatureScreen()),
                             );
                           },
                         ),
@@ -248,9 +295,7 @@ class AdminDashboardScreen extends StatelessWidget {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => const AdminAnalyticsScreen(),
-                              ),
+                              MaterialPageRoute(builder: (context) => const AdminAnalyticsScreen()),
                             );
                           },
                         ),
@@ -261,9 +306,7 @@ class AdminDashboardScreen extends StatelessWidget {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => const ManageEmployeeTasksScreen(),
-                              ),
+                              MaterialPageRoute(builder: (context) => const ManageEmployeeTasksScreen()),
                             );
                           },
                         ),
@@ -274,9 +317,7 @@ class AdminDashboardScreen extends StatelessWidget {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => const AdminFeedbackScreen(),
-                              ),
+                              MaterialPageRoute(builder: (context) => const AdminFeedbackScreen()),
                             );
                           },
                         ),
