@@ -28,7 +28,7 @@ class UserDashboardScreen extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8), // fixed here ✅
               ),
             ),
             child: const Text("Logout"),
@@ -90,6 +90,8 @@ class UserDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const darkBlue = Color(0xFF0A2E63);
+
     return WillPopScope(
       onWillPop: () async {
         final shouldLogout = await _showLogoutDialog(context);
@@ -129,51 +131,95 @@ class UserDashboardScreen extends StatelessWidget {
             ),
           ],
         ),
-        backgroundColor: Colors.grey.shade200,
-        body: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            children: [
-              dashboardCard(
-                icon: Icons.assignment,
-                title: "Log Tasks",
-                colors: [Colors.blue.shade400, Colors.blue.shade700],
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => LogTaskScreen(username: username),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF0A2E63), Color(0xFF1565C0)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Welcome, $username 👋",
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                  );
-                },
-              ),
-              dashboardCard(
-                icon: Icons.feedback,
-                title: "Feedback",
-                colors: [Colors.orange.shade400, Colors.orange.shade700],
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Coming soon: Feedback')),
-                  );
-                },
-              ),
-              dashboardCard(
-                icon: Icons.analytics,
-                title: "Reports",
-                colors: [Colors.teal.shade400, Colors.teal.shade700],
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const UserAnalyticsScreen(),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Track and manage your tasks efficiently.",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 14,
                     ),
-                  );
-                },
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: GridView.count(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      children: [
+                        dashboardCard(
+                          icon: Icons.assignment_outlined,
+                          title: "Log Tasks",
+                          colors: [
+                            Colors.indigo.shade400,
+                            Colors.indigo.shade700,
+                          ],
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    LogTaskScreen(username: username),
+                              ),
+                            );
+                          },
+                        ),
+                        dashboardCard(
+                          icon: Icons.feedback_outlined,
+                          title: "Feedback",
+                          colors: [
+                            Colors.orange.shade400,
+                            Colors.orange.shade700,
+                          ],
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Coming soon: Feedback feature'),
+                              ),
+                            );
+                          },
+                        ),
+                        dashboardCard(
+                          icon: Icons.analytics_outlined,
+                          title: "Reports",
+                          colors: [Colors.teal.shade400, Colors.teal.shade700],
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const UserAnalyticsScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
