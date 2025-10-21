@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'log_task_screen.dart';
 import 'login_screen.dart';
-import 'user_analytics_screen.dart'; // ✅ import the analytics report screen
+import 'user_analytics_screen.dart';
 
 class UserDashboardScreen extends StatelessWidget {
   final String username;
@@ -90,8 +90,6 @@ class UserDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const darkBlue = Color(0xFF0A2E63);
-
     return WillPopScope(
       onWillPop: () async {
         final shouldLogout = await _showLogoutDialog(context);
@@ -106,9 +104,9 @@ class UserDashboardScreen extends StatelessWidget {
       child: Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
-          title: Text(
+          title: const Text(
             "User Dashboard",
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
           ),
           centerTitle: true,
           backgroundColor: Colors.transparent,
@@ -142,6 +140,7 @@ class UserDashboardScreen extends StatelessWidget {
               dashboardCard(
                 icon: Icons.assignment,
                 title: "Log Tasks",
+                colors: [Colors.blue.shade400, Colors.blue.shade700],
                 onTap: () {
                   Navigator.push(
                     context,
@@ -154,6 +153,7 @@ class UserDashboardScreen extends StatelessWidget {
               dashboardCard(
                 icon: Icons.feedback,
                 title: "Feedback",
+                colors: [Colors.orange.shade400, Colors.orange.shade700],
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Coming soon: Feedback')),
@@ -163,8 +163,8 @@ class UserDashboardScreen extends StatelessWidget {
               dashboardCard(
                 icon: Icons.analytics,
                 title: "Reports",
+                colors: [Colors.teal.shade400, Colors.teal.shade700],
                 onTap: () {
-                  // ✅ Go to analytics screen
                   Navigator.push(
                     context,
                     MaterialPageRoute(
