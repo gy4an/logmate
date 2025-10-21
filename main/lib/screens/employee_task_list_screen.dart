@@ -1,6 +1,7 @@
+import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 
 class EmployeeTaskListScreen extends StatefulWidget {
   final String username;
@@ -12,210 +13,190 @@ class EmployeeTaskListScreen extends StatefulWidget {
 
 class _EmployeeTaskListScreenState extends State<EmployeeTaskListScreen>
     with SingleTickerProviderStateMixin {
-  final List<Map<String, dynamic>> _tasks = [];
-  final _taskController = TextEditingController();
-  final _hoursController = TextEditingController();
-  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
+  List<Map<String, dynamic>> _tasks = [];
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
     _loadTasks();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
   }
 
   Future<void> _loadTasks() async {
     final prefs = await SharedPreferences.getInstance();
-    final String? tasksJson = prefs.getString('tasks_${widget.username}');
-    if (tasksJson != null) {
-      final List<dynamic> decoded = jsonDecode(tasksJson);
-      for (var task in decoded) {
-        _tasks.add(Map<String, dynamic>.from(task));
-      }
-      setState(() {});
-    }
-  }
+    final data = prefs.getString('tasks_${widget.username}');
+    if (data == null) return;
 
-  Future<void> _saveTasks() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('tasks_${widget.username}', jsonEncode(_tasks));
-  }
-
-  void _addTask() {
-    final taskName = _taskController.text.trim();
-    final hours = _hoursController.text.trim();
-    if (taskName.isEmpty || hours.isEmpty) return;
-
-    final newTask = {'task': taskName, 'hours': hours};
-
+    final List<dynamic> decoded = jsonDecode(data);
     setState(() {
-      _tasks.insert(0, newTask);
-      _listKey.currentState?.insertItem(0);
+      _tasks = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+      _animationController.forward();
     });
-
-    _saveTasks();
-    _taskController.clear();
-    _hoursController.clear();
   }
 
-  void _deleteTask(int index) {
-    final removedTask = _tasks[index];
-    setState(() {
-      _tasks.removeAt(index);
-      _listKey.currentState?.removeItem(
-        index,
-        (context, animation) => _buildTaskCard(removedTask, animation),
-        duration: const Duration(milliseconds: 300),
-      );
-    });
-    _saveTasks();
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(110),
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(30),
-              bottomRight: Radius.circular(30),
-            ),
-          ),
-          child: AppBar(
-            title: Text(
-              "${widget.username} - Tasks",
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            centerTitle: true,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(
+          "${widget.username}'s Tasks",
+          style: const TextStyle(color: Colors.white),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        centerTitle: true,
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0A2E63), Color(0xFF1E88E5)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
-      ),
-      body: Column(
-        children: [
-          const SizedBox(height: 12),
-          // 🧩 Task Input Section
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: TextField(
-                        controller: _taskController,
-                        decoration: InputDecoration(
-                          labelText: 'Task name',
-                          prefixIcon: const Icon(Icons.work_outline),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 1,
-                      child: TextField(
-                        controller: _hoursController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Hours',
-                          prefixIcon: const Icon(Icons.access_time_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      onPressed: _addTask,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(16),
-                        elevation: 4,
-                      ),
-                      child: const Icon(Icons.add, color: Colors.white),
-                    ),
-                  ],
+        child: _tasks.isEmpty
+            ? const Center(
+                child: Text(
+                  "No tasks available.",
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
+              )
+            : ListView.builder(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 80),
+                itemCount: _tasks.length,
+                itemBuilder: (context, index) {
+                  final task = _tasks[index];
+                  final isApproved = task['approved'] == true;
 
-          // 🧩 Task List Section
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: _tasks.isEmpty
-                    ? const Center(
-                        key: ValueKey('empty'),
-                        child: Text(
-                          'No tasks logged yet.',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                  final animation = Tween<Offset>(
+                    begin: const Offset(0, 0.2),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                    parent: _animationController,
+                    curve: Interval(index * 0.1, 1.0, curve: Curves.easeOutBack),
+                  ));
+
+                  return SlideTransition(
+                    position: animation,
+                    child: FadeTransition(
+                      opacity: _animationController,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.white.withOpacity(0.15),
+                              Colors.white.withOpacity(0.05),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          border: Border.all(
+                            width: 1.2,
+                            color: Colors.white.withOpacity(0.2),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.25),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
                         ),
-                      )
-                    : AnimatedList(
-                        key: _listKey,
-                        initialItemCount: _tasks.length,
-                        itemBuilder: (context, index, animation) {
-                          final task = _tasks[index];
-                          return _buildTaskCard(task, animation, index);
-                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.all(14),
+                              leading: CircleAvatar(
+                                radius: 26,
+                                backgroundColor:
+                                    isApproved ? Colors.green : Colors.orange,
+                                child: Icon(
+                                  isApproved ? Icons.check : Icons.pending,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              title: Text(
+                                task['task'] ?? 'Unnamed Task',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Hours: ${task['hours']}",
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        isApproved
+                                            ? Icons.verified_rounded
+                                            : Icons.hourglass_bottom_rounded,
+                                        size: 16,
+                                        color: isApproved
+                                            ? Colors.greenAccent
+                                            : Colors.amberAccent,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        isApproved
+                                            ? "Approved ✅"
+                                            : "Pending ⏳",
+                                        style: TextStyle(
+                                          color: isApproved
+                                              ? Colors.greenAccent
+                                              : Colors.amberAccent,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              trailing: isApproved && task['adminSignature'] != null
+                                  ? const Icon(
+                                      Icons.verified_user_rounded,
+                                      color: Colors.lightGreenAccent,
+                                      size: 22,
+                                    )
+                                  : const Icon(
+                                      Icons.task_alt_rounded,
+                                      color: Colors.white70,
+                                      size: 22,
+                                    ),
+                            ),
+                          ),
+                        ),
                       ),
+                    ),
+                  );
+                },
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTaskCard(Map<String, dynamic> task, Animation<double> animation,
-      [int? index]) {
-    return SizeTransition(
-      sizeFactor: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-      child: Card(
-        elevation: 2,
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: ListTile(
-          leading: const CircleAvatar(
-            backgroundColor: Colors.blueAccent,
-            child: Icon(Icons.task, color: Colors.white),
-          ),
-          title: Text(
-            task['task'],
-            style: const TextStyle(
-                fontWeight: FontWeight.w600, color: Colors.black87),
-          ),
-          subtitle: Text('Hours: ${task['hours']}'),
-          trailing: IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-            onPressed: index != null ? () => _deleteTask(index) : null,
-          ),
-        ),
       ),
     );
   }
