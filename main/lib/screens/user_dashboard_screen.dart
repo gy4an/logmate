@@ -1,89 +1,177 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:main/screens/log_task_screen.dart';
 import 'package:main/screens/user_feedback_screen.dart';
-import 'log_task_screen.dart';
-import 'login_screen.dart';
-import 'user_analytics_screen.dart';
+import 'package:main/screens/user_analytics_screen.dart';
 
-class UserDashboardScreen extends StatelessWidget {
+class UserDashboardScreen extends StatefulWidget {
   final String username;
 
   const UserDashboardScreen({super.key, required this.username});
 
-  Future<bool> _showLogoutDialog(BuildContext context) async {
-    final result = await showDialog<bool>(
+  @override
+  State<UserDashboardScreen> createState() => _UserDashboardScreenState();
+}
+
+class _UserDashboardScreenState extends State<UserDashboardScreen> {
+  double totalHours = 0;
+  int totalTasks = 0;
+  int pendingTasks = 0;
+  int completedTasks = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTaskSummary();
+  }
+
+  Future<void> _loadTaskSummary() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedData = prefs.getString('tasks_${widget.username}');
+
+    if (storedData == null) {
+      setState(() {
+        totalTasks = 0;
+        completedTasks = 0;
+        pendingTasks = 0;
+        totalHours = 0;
+      });
+      return;
+    }
+
+    final List<dynamic> decodedList = jsonDecode(storedData);
+    final tasks = decodedList.map((t) => Map<String, dynamic>.from(t as Map)).toList();
+
+    setState(() {
+      totalTasks = tasks.length;
+      completedTasks = tasks.where((t) => t['status'] == 'Completed').length;
+      pendingTasks = tasks.where((t) => t['status'] == 'Pending').length;
+      totalHours = tasks.fold(0.0, (sum, t) {
+        final hoursValue = double.tryParse(t['hours']?.toString() ?? '0') ?? 0.0;
+        return sum + hoursValue;
+      });
+    });
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text(
-          "Logout",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: const Text("Are you sure you want to logout?"),
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8), // fixed here ✅
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text("Logout"),
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pop(context); // back to login
+            },
+            child: const Text('Logout'),
           ),
         ],
       ),
     );
-    return result ?? false;
   }
 
-  Widget dashboardCard({
+  Widget _buildSummaryCard({
+    required IconData icon,
+    required String label,
+    required String value,
+    required List<Color> gradientColors,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: gradientColors.last.withOpacity(0.4),
+            offset: const Offset(2, 4),
+            blurRadius: 6,
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white, size: 24),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400)),
+                Text(value,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold)),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionCard({
     required IconData icon,
     required String title,
-    required List<Color> colors,
+    required List<Color> gradientColors,
     required VoidCallback onTap,
   }) {
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(22),
       onTap: onTap,
-      splashColor: colors.last.withOpacity(0.3),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+      child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: colors,
+            colors: gradientColors,
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: colors.last.withOpacity(0.25),
-              blurRadius: 10,
-              spreadRadius: 1,
-              offset: const Offset(3, 4),
+              color: gradientColors.last.withOpacity(0.4),
+              offset: const Offset(2, 4),
+              blurRadius: 6,
             ),
           ],
         ),
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 50, color: Colors.white),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-              ),
-            ),
-          ],
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 36),
+              const SizedBox(height: 10),
+              Text(title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold)),
+            ],
+          ),
         ),
       ),
     );
@@ -91,137 +179,150 @@ class UserDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const darkBlue = Color(0xFF0A2E63);
-
-    return WillPopScope(
-      onWillPop: () async {
-        final shouldLogout = await _showLogoutDialog(context);
-        if (shouldLogout) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-          );
-        }
-        return false;
-      },
-      child: Scaffold(
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          title: const Text(
-            "User Dashboard",
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
-          ),
-          centerTitle: true,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          foregroundColor: Colors.white,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout_rounded),
-              onPressed: () async {
-                final shouldLogout = await _showLogoutDialog(context);
-                if (shouldLogout) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
-                    ),
-                  );
-                }
-              },
-            ),
-          ],
+    return Scaffold(
+      backgroundColor: const Color(0xff0d47a1),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          "User Dashboard",
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0A2E63), Color(0xFF1565C0)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            tooltip: "Reload Summary",
+            onPressed: _loadTaskSummary,
           ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Welcome, $username 👋",
+          IconButton(
+            icon: const Icon(Icons.power_settings_new, color: Colors.white),
+            tooltip: "Logout",
+            onPressed: _showLogoutDialog,
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xff0d47a1), Color(0xff1976d2)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Welcome, ${widget.username} 👋",
                     style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                const Text("Here’s your progress summary:",
+                    style: TextStyle(color: Colors.white70, fontSize: 13)),
+                const SizedBox(height: 14),
+
+                // ✅ Summary Cards
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  childAspectRatio: 2.5,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  children: [
+                    _buildSummaryCard(
+                      icon: Icons.access_time,
+                      label: "Total Hours",
+                      value: totalHours.toStringAsFixed(1),
+                      gradientColors: [Colors.teal, Colors.teal.shade700],
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    "Track and manage your tasks efficiently.",
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 14,
+                    _buildSummaryCard(
+                      icon: Icons.list_alt,
+                      label: "Tasks",
+                      value: "$totalTasks",
+                      gradientColors: [Colors.deepPurple, Colors.deepPurple.shade700],
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: GridView.count(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      children: [
-                        dashboardCard(
-                          icon: Icons.assignment_outlined,
-                          title: "Log Tasks",
-                          colors: [
-                            Colors.indigo.shade400,
-                            Colors.indigo.shade700,
-                          ],
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    LogTaskScreen(username: username),
-                              ),
-                            );
-                          },
-                        ),
-                        dashboardCard(
-                          icon: Icons.feedback_outlined,
-                          title: "Feedback",
-                          colors: [
-                            Colors.orange.shade400,
-                            Colors.orange.shade700,
-                          ],
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const UserFeedbackScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        dashboardCard(
-                          icon: Icons.analytics_outlined,
-                          title: "Reports",
-                          colors: [Colors.teal.shade400, Colors.teal.shade700],
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const UserAnalyticsScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                    _buildSummaryCard(
+                      icon: Icons.pending_actions,
+                      label: "Pending",
+                      value: "$pendingTasks",
+                      gradientColors: [Colors.orange, Colors.deepOrange.shade700],
                     ),
-                  ),
-                ],
-              ),
+                    _buildSummaryCard(
+                      icon: Icons.check_circle,
+                      label: "Completed",
+                      value: "$completedTasks",
+                      gradientColors: [Colors.green, Colors.green.shade700],
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // ✅ Action Buttons
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 14,
+                  crossAxisSpacing: 14,
+                  childAspectRatio: 1,
+                  children: [
+                    _buildActionCard(
+                      icon: Icons.assignment,
+                      title: "Log Tasks",
+                      gradientColors: [Colors.indigo, Colors.indigo.shade700],
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LogTaskScreen(username: widget.username),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildActionCard(
+                      icon: Icons.feedback,
+                      title: "Feedback",
+                      gradientColors: [Colors.orange, Colors.deepOrange],
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                UserFeedbackScreen(username: widget.username),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildActionCard(
+                      icon: Icons.bar_chart,
+                      title: "Reports",
+                      gradientColors: [Colors.teal, Colors.teal.shade800],
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                UserAnalyticsScreen(username: widget.username),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildActionCard(
+                      icon: Icons.settings,
+                      title: "Settings",
+                      gradientColors: [Colors.purple, Colors.deepPurple.shade800],
+                      onTap: () {},
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
