@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:main/screens/login_screen.dart' show LoginScreen;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:main/screens/log_task_screen.dart';
 import 'package:main/screens/user_feedback_screen.dart';
@@ -54,34 +55,27 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     });
   }
 
-  void _showLogoutDialog() {
-    showDialog(
+   Future<bool> _showLogoutDialog(BuildContext context) async {
+    final result = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text("Logout", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text("Are you sure you want to logout?"),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
           ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.pop(context); // back to login
-            },
-            child: const Text('Logout'),
+            child: const Text("Logout"),
           ),
         ],
       ),
     );
+    return result ?? false;
   }
 
   Widget _buildSummaryCard({
@@ -198,7 +192,15 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.power_settings_new, color: Colors.white),
             tooltip: "Logout",
-            onPressed: _showLogoutDialog,
+            onPressed: () async {
+              final shouldLogout = await _showLogoutDialog(context);
+              if (shouldLogout) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  );
+                }
+            },
           ),
         ],
       ),
