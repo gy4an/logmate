@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:main/screens/login_screen.dart' show LoginScreen;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:main/screens/login_screen.dart';
 import 'package:main/screens/log_task_screen.dart';
 import 'package:main/screens/user_feedback_screen.dart';
 import 'package:main/screens/user_analytics_screen.dart';
@@ -29,9 +29,10 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
 
   Future<void> _loadTaskSummary() async {
     final prefs = await SharedPreferences.getInstance();
-    final storedData = prefs.getString('tasks_${widget.username}');
+    final key = 'tasks_${widget.username}';
+    final storedData = prefs.getString(key);
 
-    if (storedData == null) {
+    if (storedData == null || storedData.isEmpty) {
       setState(() {
         totalTasks = 0;
         completedTasks = 0;
@@ -41,41 +42,57 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       return;
     }
 
-    final List<dynamic> decodedList = jsonDecode(storedData);
-    final tasks = decodedList.map((t) => Map<String, dynamic>.from(t as Map)).toList();
+    try {
+      final decoded = jsonDecode(storedData);
 
-    setState(() {
-      totalTasks = tasks.length;
-      completedTasks = tasks.where((t) => t['status'] == 'Completed').length;
-      pendingTasks = tasks.where((t) => t['status'] == 'Pending').length;
-      totalHours = tasks.fold(0.0, (sum, t) {
-        final hoursValue = double.tryParse(t['hours']?.toString() ?? '0') ?? 0.0;
-        return sum + hoursValue;
+      List<Map<String, dynamic>> tasks = [];
+
+      // ✅ Handle both old and new data formats safely
+      if (decoded is List) {
+        if (decoded.isNotEmpty && decoded.first is Map) {
+          tasks = decoded.map((t) => Map<String, dynamic>.from(t)).toList();
+        } else if (decoded.isNotEmpty && decoded.first is String) {
+          // old version saved as string list
+          tasks = decoded.map((e) => {
+            'task': e,
+            'status': 'Pending',
+            'hours': '0',
+          }).toList();
+        }
+      }
+
+      setState(() {
+        totalTasks = tasks.length;
+        completedTasks = tasks.where((t) => t['status'] == 'Completed').length;
+        pendingTasks = tasks.where((t) => t['status'] == 'Pending').length;
+        totalHours = tasks.fold(0.0, (sum, t) {
+          final hoursValue =
+              double.tryParse(t['hours']?.toString() ?? '0') ?? 0.0;
+          return sum + hoursValue;
+        });
       });
-    });
+    } catch (e) {
+      debugPrint("⚠️ Error decoding tasks: $e");
+      setState(() {
+        totalTasks = 0;
+        completedTasks = 0;
+        pendingTasks = 0;
+        totalHours = 0;
+      });
+    }
   }
 
-   Future<bool> _showLogoutDialog(BuildContext context) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text("Logout", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text("Are you sure you want to logout?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text("Logout"),
-          ),
-        ],
-      ),
-    );
-    return result ?? false;
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('currentUser'); // ✅ keep task data, only log out user
+
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    }
   }
 
   Widget _buildSummaryCard({
@@ -103,7 +120,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          Icon(icon, color: Colors.white, size: 24),
+          Icon(icon, color: Colors.white, size: 26),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -112,7 +129,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                 Text(label,
                     style: const TextStyle(
                         color: Colors.white70,
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w400)),
                 Text(value,
                     style: const TextStyle(
@@ -134,7 +151,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     required VoidCallback onTap,
   }) {
     return InkWell(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(20),
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
@@ -143,7 +160,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
               color: gradientColors.last.withOpacity(0.4),
@@ -154,9 +171,9 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
         ),
         child: Center(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: Colors.white, size: 36),
+              Icon(icon, color: Colors.white, size: 38),
               const SizedBox(height: 10),
               Text(title,
                   textAlign: TextAlign.center,
@@ -178,10 +195,8 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          "User Dashboard",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text("User Dashboard",
+            style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
           IconButton(
@@ -190,143 +205,173 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
             onPressed: _loadTaskSummary,
           ),
           IconButton(
-            icon: const Icon(Icons.power_settings_new, color: Colors.white),
+            icon: const Icon(Icons.logout, color: Colors.white),
             tooltip: "Logout",
             onPressed: () async {
-              final shouldLogout = await _showLogoutDialog(context);
-              if (shouldLogout) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  );
-                }
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text("Confirm Logout"),
+                  content: const Text("Do you want to logout?"),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text("Cancel"),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent),
+                      child: const Text("Logout"),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) _logout();
             },
           ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xff0d47a1), Color(0xff1976d2)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Welcome, ${widget.username} 👋",
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                const Text("Here’s your progress summary:",
-                    style: TextStyle(color: Colors.white70, fontSize: 13)),
-                const SizedBox(height: 14),
-
-                // ✅ Summary Cards
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  childAspectRatio: 2.5,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSummaryCard(
-                      icon: Icons.access_time,
-                      label: "Total Hours",
-                      value: totalHours.toStringAsFixed(1),
-                      gradientColors: [Colors.teal, Colors.teal.shade700],
+                    Text("Welcome, ${widget.username} 👋",
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    const Text("Here’s your progress summary:",
+                        style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    const SizedBox(height: 14),
+
+                    // ✅ Summary cards
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      childAspectRatio: 2.5,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      children: [
+                        _buildSummaryCard(
+                          icon: Icons.access_time,
+                          label: "Total Hours",
+                          value: totalHours.toStringAsFixed(1),
+                          gradientColors: [Colors.teal, Colors.teal.shade700],
+                        ),
+                        _buildSummaryCard(
+                          icon: Icons.list_alt,
+                          label: "Tasks",
+                          value: "$totalTasks",
+                          gradientColors: [
+                            Colors.deepPurple,
+                            Colors.deepPurple.shade700
+                          ],
+                        ),
+                        _buildSummaryCard(
+                          icon: Icons.pending_actions,
+                          label: "Pending",
+                          value: "$pendingTasks",
+                          gradientColors: [
+                            Colors.orange,
+                            Colors.deepOrange.shade700
+                          ],
+                        ),
+                        _buildSummaryCard(
+                          icon: Icons.check_circle,
+                          label: "Completed",
+                          value: "$completedTasks",
+                          gradientColors: [
+                            Colors.green,
+                            Colors.green.shade700
+                          ],
+                        ),
+                      ],
                     ),
-                    _buildSummaryCard(
-                      icon: Icons.list_alt,
-                      label: "Tasks",
-                      value: "$totalTasks",
-                      gradientColors: [Colors.deepPurple, Colors.deepPurple.shade700],
-                    ),
-                    _buildSummaryCard(
-                      icon: Icons.pending_actions,
-                      label: "Pending",
-                      value: "$pendingTasks",
-                      gradientColors: [Colors.orange, Colors.deepOrange.shade700],
-                    ),
-                    _buildSummaryCard(
-                      icon: Icons.check_circle,
-                      label: "Completed",
-                      value: "$completedTasks",
-                      gradientColors: [Colors.green, Colors.green.shade700],
+
+                    const SizedBox(height: 20),
+
+                    // ✅ Action buttons
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 14,
+                      crossAxisSpacing: 14,
+                      childAspectRatio: 1,
+                      children: [
+                        _buildActionCard(
+                          icon: Icons.assignment,
+                          title: "Log Tasks",
+                          gradientColors: [
+                            Colors.indigo,
+                            Colors.indigo.shade700
+                          ],
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      LogTaskScreen(username: widget.username)),
+                            ).then((_) => _loadTaskSummary());
+                          },
+                        ),
+                        _buildActionCard(
+                          icon: Icons.feedback,
+                          title: "Feedback",
+                          gradientColors: [
+                            Colors.orange,
+                            Colors.deepOrange
+                          ],
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      UserFeedbackScreen(username: widget.username)),
+                            );
+                          },
+                        ),
+                        _buildActionCard(
+                          icon: Icons.bar_chart,
+                          title: "Reports",
+                          gradientColors: [
+                            Colors.teal,
+                            Colors.teal.shade800
+                          ],
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      UserAnalyticsScreen(username: widget.username)),
+                            );
+                          },
+                        ),
+                        _buildActionCard(
+                          icon: Icons.settings,
+                          title: "Settings",
+                          gradientColors: [
+                            Colors.purple,
+                            Colors.deepPurple.shade800
+                          ],
+                          onTap: () {},
+                        ),
+                      ],
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 20),
-
-                // ✅ Action Buttons
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  childAspectRatio: 1,
-                  children: [
-                    _buildActionCard(
-                      icon: Icons.assignment,
-                      title: "Log Tasks",
-                      gradientColors: [Colors.indigo, Colors.indigo.shade700],
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => LogTaskScreen(username: widget.username),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildActionCard(
-                      icon: Icons.feedback,
-                      title: "Feedback",
-                      gradientColors: [Colors.orange, Colors.deepOrange],
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                UserFeedbackScreen(username: widget.username),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildActionCard(
-                      icon: Icons.bar_chart,
-                      title: "Reports",
-                      gradientColors: [Colors.teal, Colors.teal.shade800],
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                UserAnalyticsScreen(username: widget.username),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildActionCard(
-                      icon: Icons.settings,
-                      title: "Settings",
-                      gradientColors: [Colors.purple, Colors.deepPurple.shade800],
-                      onTap: () {},
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
