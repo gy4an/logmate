@@ -11,7 +11,8 @@ class UserAnalyticsScreen extends StatefulWidget {
   State<UserAnalyticsScreen> createState() => _UserAnalyticsScreenState();
 }
 
-class _UserAnalyticsScreenState extends State<UserAnalyticsScreen> with SingleTickerProviderStateMixin {
+class _UserAnalyticsScreenState extends State<UserAnalyticsScreen>
+    with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _taskLogs = [];
   late AnimationController _animationController;
 
@@ -38,17 +39,12 @@ class _UserAnalyticsScreenState extends State<UserAnalyticsScreen> with SingleTi
   }
 
   double _parseHours(dynamic hours) {
+    if (hours == null) return 0;
     if (hours is double) return hours;
     if (hours is int) return hours.toDouble();
     if (hours is String) return double.tryParse(hours) ?? 0;
     return 0;
   }
-
-  double get _totalHours => _taskLogs.fold(0, (sum, item) => sum + _parseHours(item['hours']));
-
-  int get _totalTasks => _taskLogs.length;
-
-  double get _averageHours => _totalTasks > 0 ? _totalHours / _totalTasks : 0;
 
   DateTime _parseDate(String? dateStr) {
     if (dateStr == null) return DateTime.now();
@@ -58,6 +54,12 @@ class _UserAnalyticsScreenState extends State<UserAnalyticsScreen> with SingleTi
       return DateTime.now();
     }
   }
+
+  int get _completedTasks =>
+      _taskLogs.where((task) => task['completed'] == true).length;
+
+  int get _pendingTasks =>
+      _taskLogs.where((task) => task['completed'] != true).length;
 
   @override
   void dispose() {
@@ -92,9 +94,12 @@ class _UserAnalyticsScreenState extends State<UserAnalyticsScreen> with SingleTi
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _summaryCard("Total Tasks", _totalTasks.toString(), Icons.list, Colors.orange),
-                    _summaryCard("Total Hours", _totalHours.toStringAsFixed(1), Icons.access_time, Colors.green),
-                    _summaryCard("Avg Hours", _averageHours.toStringAsFixed(1), Icons.bar_chart, Colors.purple),
+                    _summaryCard("Total Tasks", _taskLogs.length.toString(),
+                        Icons.list, Colors.orange),
+                    _summaryCard("Completed", _completedTasks.toString(),
+                        Icons.check_circle, Colors.green),
+                    _summaryCard("Pending", _pendingTasks.toString(),
+                        Icons.hourglass_bottom, Colors.amber),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -102,7 +107,10 @@ class _UserAnalyticsScreenState extends State<UserAnalyticsScreen> with SingleTi
                   alignment: Alignment.centerLeft,
                   child: Text(
                     "Task Breakdown",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -111,7 +119,8 @@ class _UserAnalyticsScreenState extends State<UserAnalyticsScreen> with SingleTi
                       ? const Center(
                           child: Text(
                             "No task logs yet.",
-                            style: TextStyle(color: Colors.white70, fontSize: 16),
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 16),
                           ),
                         )
                       : ListView.builder(
@@ -120,29 +129,53 @@ class _UserAnalyticsScreenState extends State<UserAnalyticsScreen> with SingleTi
                             final log = _taskLogs[index];
                             final hours = _parseHours(log['hours']);
                             final date = _parseDate(log['date']);
+                            final taskName = log['task'] ??
+                                log['title'] ??
+                                'Untitled Task';
+                            final isCompleted = log['completed'] == true;
+
                             return FadeTransition(
                               opacity: _animationController,
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 6),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 6),
                                 child: Card(
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(16)),
                                   color: Colors.white.withOpacity(0.15),
                                   child: ListTile(
                                     leading: CircleAvatar(
-                                      backgroundColor: Colors.blueAccent.withOpacity(0.8),
-                                      child: const Icon(Icons.task_alt, color: Colors.white),
+                                      backgroundColor: isCompleted
+                                          ? Colors.green.withOpacity(0.8)
+                                          : Colors.amber.withOpacity(0.8),
+                                      child: Icon(
+                                        isCompleted
+                                            ? Icons.check_rounded
+                                            : Icons.hourglass_bottom_rounded,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                     title: Text(
-                                      log['task'] ?? '',
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                      taskName,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        decoration: isCompleted
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                      ),
                                     ),
                                     subtitle: Text(
                                       "Date: ${DateFormat('MMM d, yyyy').format(date)}",
-                                      style: const TextStyle(color: Colors.white70),
+                                      style: const TextStyle(
+                                          color: Colors.white70),
                                     ),
                                     trailing: Text(
                                       "${hours.toStringAsFixed(1)} hrs",
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold),
                                     ),
                                   ),
                                 ),
@@ -159,7 +192,8 @@ class _UserAnalyticsScreenState extends State<UserAnalyticsScreen> with SingleTi
     );
   }
 
-  Widget _summaryCard(String title, String value, IconData icon, Color color) {
+  Widget _summaryCard(
+      String title, String value, IconData icon, Color color) {
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -171,15 +205,26 @@ class _UserAnalyticsScreenState extends State<UserAnalyticsScreen> with SingleTi
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 6, offset: const Offset(2, 4))],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 6,
+                offset: const Offset(2, 4))
+          ],
         ),
         child: Column(
           children: [
             Icon(icon, color: Colors.white, size: 28),
             const SizedBox(height: 8),
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            Text(value,
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white)),
             const SizedBox(height: 4),
-            Text(title, style: const TextStyle(fontSize: 13, color: Colors.white70)),
+            Text(title,
+                style:
+                    const TextStyle(fontSize: 13, color: Colors.white70)),
           ],
         ),
       ),

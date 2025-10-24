@@ -44,32 +44,28 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
 
     try {
       final decoded = jsonDecode(storedData);
-
       List<Map<String, dynamic>> tasks = [];
 
-      // ✅ Handle both old and new data formats safely
       if (decoded is List) {
-        if (decoded.isNotEmpty && decoded.first is Map) {
-          tasks = decoded.map((t) => Map<String, dynamic>.from(t)).toList();
-        } else if (decoded.isNotEmpty && decoded.first is String) {
-          // old version saved as string list
-          tasks = decoded.map((e) => {
-            'task': e,
-            'status': 'Pending',
-            'hours': '0',
-          }).toList();
+        tasks = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+
+      double computedHours = 0;
+      for (var t in tasks) {
+        final start = t['startTime'] != null ? DateTime.tryParse(t['startTime']) : null;
+        final end = t['endTime'] != null ? DateTime.tryParse(t['endTime']) : null;
+
+        if (start != null && end != null) {
+          final duration = end.difference(start).inMinutes / 60.0;
+          computedHours += duration;
         }
       }
 
       setState(() {
         totalTasks = tasks.length;
-        completedTasks = tasks.where((t) => t['status'] == 'Completed').length;
-        pendingTasks = tasks.where((t) => t['status'] == 'Pending').length;
-        totalHours = tasks.fold(0.0, (sum, t) {
-          final hoursValue =
-              double.tryParse(t['hours']?.toString() ?? '0') ?? 0.0;
-          return sum + hoursValue;
-        });
+        completedTasks = tasks.where((t) => t['completed'] == true).length;
+        pendingTasks = tasks.where((t) => t['completed'] != true).length;
+        totalHours = computedHours;
       });
     } catch (e) {
       debugPrint("⚠️ Error decoding tasks: $e");
@@ -84,7 +80,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
 
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('currentUser'); // ✅ keep task data, only log out user
+    await prefs.remove('currentUser');
 
     if (mounted) {
       Navigator.pushAndRemoveUntil(
@@ -264,7 +260,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                         _buildSummaryCard(
                           icon: Icons.access_time,
                           label: "Total Hours",
-                          value: totalHours.toStringAsFixed(1),
+                          value: totalHours.toStringAsFixed(2),
                           gradientColors: [Colors.teal, Colors.teal.shade700],
                         ),
                         _buildSummaryCard(

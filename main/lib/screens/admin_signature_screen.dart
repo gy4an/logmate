@@ -104,7 +104,7 @@ class _AdminSignatureScreenState extends State<AdminSignatureScreen>
                     builder: (context, child) {
                       final animationValue = Curves.easeOutBack.transform(
                       (_controller.value - delay).clamp(0.0, 1.0),
-                      ).clamp(0.0, 1.0); // <-- clamp AFTER curve
+                    ).clamp(0.0, 1.0);
                       return Opacity(
                         opacity: animationValue,
                         child: Transform.translate(
@@ -293,6 +293,7 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
                     itemBuilder: (context, index) {
                       final task = _tasks[index];
                       final isSelected = _selectedTaskIndex == index;
+                      final actualHours = task['actualHours'] ?? task['hours'] ?? 0;
 
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 400),
@@ -324,7 +325,7 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
                               style: const TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.w600)),
                           subtitle: Text(
-                              'Hours: ${task['hours']}  •  ${task['approved'] ? 'Approved' : 'Pending'}',
+                              'Actual Hours: $actualHours  •  ${task['approved'] ? 'Approved' : 'Pending'}',
                               style: TextStyle(
                                 color: task['approved']
                                     ? Colors.green.shade700
@@ -433,7 +434,7 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
   void initState() {
     super.initState();
     _controller =
-        AnimationController(vsync: this, duration: const Duration(seconds: 1));
+        AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
     _generateReport();
   }
 
@@ -454,27 +455,50 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
 
       final totalTasks = tasks.length;
       final approvedTasks = tasks.where((t) => t['approved'] == true).length;
-      final totalHours = tasks.fold<double>(0,
-          (sum, t) => sum + (double.tryParse(t['hours']?.toString() ?? '0') ?? 0));
+
+      // ✅ Safely compute actual hours (fallback to hours if needed)
+      final totalHours = tasks.fold<double>(0, (sum, t) {
+        final raw = t['actualHours'] ?? t['hours'];
+        return sum + (double.tryParse(raw?.toString() ?? '0') ?? 0);
+      });
 
       final approvalRate = totalTasks == 0
-          ? 0
+          ? "0"
           : ((approvedTasks / totalTasks) * 100).toStringAsFixed(1);
 
       tempReport.add({
         'student': studentName,
         'tasks': totalTasks,
         'approved': approvedTasks,
-        'hours': totalHours,
+        'hours': totalHours.toStringAsFixed(2),
         'rate': approvalRate,
       });
     }
 
-    setState(() {
-      _report = tempReport;
-    });
-
+    setState(() => _report = tempReport);
     _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _infoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white70, size: 18),
+          const SizedBox(width: 6),
+          Text("$label: ", style: const TextStyle(color: Colors.white70)),
+          Text(value,
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
   }
 
   @override
@@ -484,7 +508,8 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
-        title: const Text("Analytics Report", style: TextStyle(color: Colors.white)),
+        title:
+            const Text("Analytics Report", style: TextStyle(color: Colors.white)),
         centerTitle: true,
       ),
       body: Container(
@@ -512,13 +537,12 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
                     return AnimatedBuilder(
                       animation: _controller,
                       builder: (context, child) {
-                        final value = Curves.easeOut.transform(
-                          (_controller.value - (index * 0.1)).clamp(0.0, 1.0),
-                        );
+                        double value = (_controller.value - index * 0.1).clamp(0.0, 1.0);
+                        final curved = Curves.easeOut.transform(value).clamp(0.0, 1.0);
                         return Opacity(
-                          opacity: value,
+                          opacity: curved,
                           child: Transform.translate(
-                            offset: Offset(0, (1 - value) * 40),
+                            offset: Offset(0, (1 - curved) * 40),
                             child: child,
                           ),
                         );
@@ -534,8 +558,7 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
                                 color: Colors.white.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
-                                ),
+                                    color: Colors.white.withOpacity(0.3)),
                               ),
                               child: ListTile(
                                 leading: CircleAvatar(
@@ -553,14 +576,13 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
                                 subtitle: Padding(
                                   padding: const EdgeInsets.only(top: 8.0),
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       _infoRow(Icons.task, "Total Tasks",
                                           student['tasks'].toString()),
                                       _infoRow(Icons.check_circle, "Approved",
                                           student['approved'].toString()),
-                                      _infoRow(Icons.access_time, "Total Hours",
+                                      _infoRow(Icons.access_time, "Actual Hours",
                                           student['hours'].toString()),
                                       _infoRow(Icons.percent, "Approval Rate",
                                           "${student['rate']}%"),
@@ -576,25 +598,6 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
                   },
                 ),
         ),
-      ),
-    );
-  }
-
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white70, size: 18),
-          const SizedBox(width: 6),
-          Text(
-            "$label: ",
-            style: const TextStyle(color: Colors.white70),
-          ),
-          Text(value,
-              style:
-                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        ],
       ),
     );
   }
