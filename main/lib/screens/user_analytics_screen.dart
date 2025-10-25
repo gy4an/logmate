@@ -1,127 +1,233 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class UserAnalyticsScreen extends StatefulWidget {
-  const UserAnalyticsScreen({super.key});
+  final String username;
+  const UserAnalyticsScreen({super.key, required this.username});
 
   @override
   State<UserAnalyticsScreen> createState() => _UserAnalyticsScreenState();
 }
 
-class _UserAnalyticsScreenState extends State<UserAnalyticsScreen> {
-  // Dummy data: replace with Firestore data later
-  final List<Map<String, dynamic>> _taskLogs = [
-    {
-      'date': DateTime(2025, 10, 1),
-      'task': 'Database Setup',
-      'hours': 4.5,
-    },
-    {
-      'date': DateTime(2025, 10, 2),
-      'task': 'UI Design',
-      'hours': 3.0,
-    },
-    {
-      'date': DateTime(2025, 10, 3),
-      'task': 'Backend Integration',
-      'hours': 5.0,
-    },
-    {
-      'date': DateTime(2025, 10, 5),
-      'task': 'Testing & Debugging',
-      'hours': 2.5,
-    },
-  ];
+class _UserAnalyticsScreenState extends State<UserAnalyticsScreen>
+    with SingleTickerProviderStateMixin {
+  List<Map<String, dynamic>> _taskLogs = [];
+  late AnimationController _animationController;
 
-  double get _totalHours =>
-      _taskLogs.fold(0, (sum, item) => sum + (item['hours'] as double));
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _animationController.forward();
+    _loadTaskLogs();
+  }
 
-  int get _totalTasks => _taskLogs.length;
+  Future<void> _loadTaskLogs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('tasks_${widget.username}');
+    if (data != null) {
+      final List<dynamic> decoded = jsonDecode(data);
+      setState(() {
+        _taskLogs = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+      });
+    }
+  }
+
+  double _parseHours(dynamic hours) {
+    if (hours == null) return 0;
+    if (hours is double) return hours;
+    if (hours is int) return hours.toDouble();
+    if (hours is String) return double.tryParse(hours) ?? 0;
+    return 0;
+  }
+
+  DateTime _parseDate(String? dateStr) {
+    if (dateStr == null) return DateTime.now();
+    try {
+      return DateTime.parse(dateStr);
+    } catch (_) {
+      return DateTime.now();
+    }
+  }
+
+  int get _completedTasks =>
+      _taskLogs.where((task) => task['completed'] == true).length;
+
+  int get _pendingTasks =>
+      _taskLogs.where((task) => task['completed'] != true).length;
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text("Analytics & Reports"),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Summary
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0A2E63), Color(0xFF5AB2FF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                // Summary cards
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _summaryTile("Total Tasks", _totalTasks.toString(), Icons.list),
-                    _summaryTile(
-                      "Total Hours",
-                      _totalHours.toStringAsFixed(1),
-                      Icons.access_time,
-                    ),
-                    _summaryTile(
-                      "Average per Task",
-                      (_totalHours / _totalTasks).toStringAsFixed(1),
-                      Icons.bar_chart,
-                    ),
+                    _summaryCard("Total Tasks", _taskLogs.length.toString(),
+                        Icons.list, Colors.orange),
+                    _summaryCard("Completed", _completedTasks.toString(),
+                        Icons.check_circle, Colors.green),
+                    _summaryCard("Pending", _pendingTasks.toString(),
+                        Icons.hourglass_bottom, Colors.amber),
                   ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 20),
+                const SizedBox(height: 20),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Task Breakdown",
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: _taskLogs.isEmpty
+                      ? const Center(
+                          child: Text(
+                            "No task logs yet.",
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 16),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _taskLogs.length,
+                          itemBuilder: (context, index) {
+                            final log = _taskLogs[index];
+                            final hours = _parseHours(log['hours']);
+                            final date = _parseDate(log['date']);
+                            final taskName = log['task'] ??
+                                log['title'] ??
+                                'Untitled Task';
+                            final isCompleted = log['completed'] == true;
 
-            const Text(
-              "Task Breakdown",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            return FadeTransition(
+                              opacity: _animationController,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 6),
+                                child: Card(
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(16)),
+                                  color: Colors.white.withOpacity(0.15),
+                                  child: ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundColor: isCompleted
+                                          ? Colors.green.withOpacity(0.8)
+                                          : Colors.amber.withOpacity(0.8),
+                                      child: Icon(
+                                        isCompleted
+                                            ? Icons.check_rounded
+                                            : Icons.hourglass_bottom_rounded,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    title: Text(
+                                      taskName,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        decoration: isCompleted
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      "Date: ${DateFormat('MMM d, yyyy').format(date)}",
+                                      style: const TextStyle(
+                                          color: Colors.white70),
+                                    ),
+                                    trailing: Text(
+                                      "${hours.toStringAsFixed(1)} hrs",
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-
-            // List of task logs
-            Expanded(
-              child: ListView.builder(
-                itemCount: _taskLogs.length,
-                itemBuilder: (context, index) {
-                  final log = _taskLogs[index];
-                  return Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.task_alt, color: Colors.blueAccent),
-                      title: Text(log['task']),
-                      subtitle: Text(
-                        "Date: ${DateFormat('MMM d, yyyy').format(log['date'])}",
-                      ),
-                      trailing: Text(
-                        "${log['hours']} hrs",
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _summaryTile(String title, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.blueAccent),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+  Widget _summaryCard(
+      String title, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [color.withOpacity(0.7), color],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 6,
+                offset: const Offset(2, 4))
+          ],
         ),
-        Text(title, style: const TextStyle(fontSize: 14, color: Colors.grey)),
-      ],
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.white, size: 28),
+            const SizedBox(height: 8),
+            Text(value,
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white)),
+            const SizedBox(height: 4),
+            Text(title,
+                style:
+                    const TextStyle(fontSize: 13, color: Colors.white70)),
+          ],
+        ),
+      ),
     );
   }
 }

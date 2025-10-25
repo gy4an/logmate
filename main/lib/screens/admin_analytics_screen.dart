@@ -25,7 +25,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
     super.initState();
     _loadStudents();
 
-    // 🔄 Smooth animation setup
+    // Animation setup
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -57,16 +57,36 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getString('tasks_$username');
     if (data == null) return;
+
     final List<dynamic> decoded = jsonDecode(data);
+    final tasks = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+
+    // Compute actual hours for each task
+    for (var task in tasks) {
+      if (task['startTime'] != null && task['endTime'] != null) {
+        final start = DateTime.parse(task['startTime']);
+        final end = DateTime.parse(task['endTime']);
+        final diff = end.difference(start).inMinutes / 60.0;
+        task['actualHours'] = diff;
+      } else {
+        task['actualHours'] = 0.0;
+      }
+    }
+
     setState(() {
       _selectedStudent = username;
-      _studentTasks = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+      _studentTasks = tasks;
     });
+
     _controller.forward(from: 0);
   }
 
-  double getTotalHours() => _studentTasks.fold(
-      0, (sum, item) => sum + double.tryParse(item['hours'] ?? '0')!);
+  double getTotalHours() {
+    return _studentTasks.fold(0.0, (sum, task) {
+      final hours = task['actualHours'] ?? 0.0;
+      return sum + (hours is num ? hours.toDouble() : 0.0);
+    });
+  }
 
   int getApprovedCount() =>
       _studentTasks.where((task) => task['approved'] == true).length;
@@ -208,26 +228,25 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
 
           const SizedBox(height: 20),
 
-          // Animated Info Cards
+          // Info Cards
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildInfoCard("Total Hours", totalHours.toStringAsFixed(1),
+              _buildInfoCard("Total Hours", totalHours.toStringAsFixed(2),
                   Icons.access_time, Colors.blueAccent),
-              _buildInfoCard(
-                  "Approved", "$approved", Icons.check_circle, Colors.greenAccent),
+              _buildInfoCard("Approved", "$approved", Icons.check_circle,
+                  Colors.greenAccent),
               _buildInfoCard("Pending", "$pending", Icons.pending_actions,
                   Colors.orangeAccent),
             ],
           ),
-          const SizedBox(height: 30),
 
+          const SizedBox(height: 30),
           const Text("Task Details",
               style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 16)),
-
           const SizedBox(height: 10),
 
           Expanded(
@@ -236,6 +255,8 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
               itemBuilder: (context, index) {
                 final task = _studentTasks[index];
                 final approved = task['approved'] == true;
+                final hours = task['actualHours'] ?? 0.0;
+
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeOut,
@@ -251,13 +272,15 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen>
                             : Colors.white.withOpacity(0.2)),
                   ),
                   child: ListTile(
-                    title: Text(task['task'],
+                    title: Text(task['task'] ?? 'Untitled Task',
                         style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
                             fontSize: 15)),
-                    subtitle: Text("Hours: ${task['hours']}",
-                        style: const TextStyle(color: Colors.white70)),
+                    subtitle: Text(
+                      "Actual Hours: ${hours.toStringAsFixed(2)}",
+                      style: const TextStyle(color: Colors.white70),
+                    ),
                     trailing: Icon(
                       approved ? Icons.check_circle : Icons.hourglass_empty,
                       color:

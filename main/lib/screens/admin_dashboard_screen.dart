@@ -18,7 +18,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int _studentCount = 0;
   int _taskCount = 0;
   int _pendingCount = 0;
-  int _attendanceCount = 0;
+  double _totalActualHours = 0.0; // ✅ NEW — Track total actual hours
 
   @override
   void initState() {
@@ -26,33 +26,60 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _loadSummaryData();
   }
 
-  Future<void> _loadSummaryData() async {
+    Future<void> _loadSummaryData() async {
     final prefs = await SharedPreferences.getInstance();
     final keys = prefs.getKeys();
 
+    int students = 0;
     int totalTasks = 0;
     int pendingTasks = 0;
-    int attendance = 0;
-    int students = 0;
+    int completedTasks = 0;
+    double totalActualHours = 0.0;
 
     for (String key in keys) {
       if (key.startsWith("tasks_")) {
         students++;
         final String? jsonData = prefs.getString(key);
-        if (jsonData != null) {
-          final List<dynamic> tasks = jsonDecode(jsonData);
+        if (jsonData == null || jsonData.isEmpty) continue;
 
-          totalTasks += tasks.length;
+        List<dynamic> tasksList;
+        try {
+          tasksList = jsonDecode(jsonData) as List<dynamic>;
+        } catch (e) {
+          // if malformed, skip this student's tasks
+          continue;
+        }
 
-          for (var t in tasks) {
-            if (t is Map<String, dynamic>) {
-              final status = t['status'] ?? 'Pending';
-              final hours = double.tryParse(t['hours']?.toString() ?? '0') ?? 0;
+        totalTasks += tasksList.length;
 
-              if (status != 'Completed') pendingTasks++;
-              if (hours > 0) attendance++;
-            }
+        for (var raw in tasksList) {
+          if (raw is! Map) continue;
+          final Map<String, dynamic> t = Map<String, dynamic>.from(raw);
+
+          // read status/approved/actualHours (robustly)
+          final String status = (t['status']?.toString() ?? '').trim();
+          final bool approved = (t['approved'] == true);
+          final double actual = double.tryParse(
+                (t['actualHours'] ?? t['hours'] ?? '0').toString(),
+              ) ??
+              0.0;
+
+          totalActualHours += actual;
+
+          // Completed if status explicitly 'Completed'
+          if (status.toLowerCase() == 'completed') {
+            completedTasks++;
+            continue;
           }
+
+          // If task already approved (but not marked Completed) treat as completed for pending calculation
+          if (approved) {
+            completedTasks++;
+            continue;
+          }
+
+          // Otherwise it's pending (ongoing, pending approval, not started, etc.)
+          pendingTasks++;
         }
       }
     }
@@ -61,9 +88,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _studentCount = students;
       _taskCount = totalTasks;
       _pendingCount = pendingTasks;
-      _attendanceCount = attendance;
+      _totalActualHours = totalActualHours;
     });
   }
+
 
   Future<bool> _showLogoutDialog(BuildContext context) async {
     final result = await showDialog<bool>(
@@ -265,7 +293,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   Row(
                     children: [
                       summaryCard("Pending", "$_pendingCount", Colors.redAccent, Icons.pending_actions),
-                      summaryCard("Attendance", "$_attendanceCount", Colors.lightBlueAccent, Icons.calendar_today),
+                      summaryCard("Actual Hours", "${_totalActualHours.toStringAsFixed(1)}h", Colors.lightBlueAccent, Icons.access_time),
                     ],
                   ),
                   const SizedBox(height: 25),

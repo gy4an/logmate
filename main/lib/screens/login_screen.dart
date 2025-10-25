@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'signup_screen.dart';
 import 'admin_dashboard_screen.dart';
@@ -23,39 +22,40 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text.trim();
 
     if (username.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter username and password')),
-      );
+      _showSnack("Please enter username and password");
       return;
     }
 
     final prefs = await SharedPreferences.getInstance();
+
+    // ✅ Load accounts list from SharedPreferences
     final accountsJson = prefs.getString('accounts');
-    if (accountsJson == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No accounts found. Please sign up first.'),
-        ),
-      );
-      return;
+    List<Map<String, dynamic>> accounts = [];
+    if (accountsJson != null && accountsJson.isNotEmpty) {
+      final decoded = jsonDecode(accountsJson);
+      if (decoded is List) {
+        accounts = decoded.cast<Map<String, dynamic>>();
+      }
     }
 
-    final List accounts = jsonDecode(accountsJson);
+    // Find the matching user
     final user = accounts.firstWhere(
-      (acc) => acc['username'] == username && acc['password'] == password,
-      orElse: () => null,
+      (acc) =>
+          acc['username'] == username && acc['password'] == password,
+      orElse: () => {},
     );
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid username or password')),
-      );
+
+    if (user.isEmpty) {
+      _showSnack("Invalid username or password");
       return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Welcome, ${user['username']}!')));
+    // ✅ Save current logged-in user
+    await prefs.setString('currentUser', jsonEncode(user));
 
+    _showSnack("Welcome, ${user['username']}!");
+
+    // Navigate based on role
     if (user['role'] == 'admin') {
       Navigator.pushReplacement(
         context,
@@ -71,10 +71,18 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   Future<void> _goToSignup() async {
-    await Navigator.of(
+    await Navigator.push(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const SignupScreen()));
+      MaterialPageRoute(builder: (_) => const SignupScreen()),
+    );
+    setState(() {}); // Refresh in case new account was added
   }
 
   @override
@@ -96,7 +104,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         child: Stack(
           children: [
-            // Curved top design
             Positioned(
               top: -height * 0.25,
               left: -width * 0.3,
@@ -111,10 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 24,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -134,12 +138,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 48),
 
-                    // Card container for inputs
+                    // Login Card
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 30,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
@@ -156,10 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextField(
                             controller: _usernameController,
                             decoration: InputDecoration(
-                              prefixIcon: const Icon(
-                                Icons.person_outline,
-                                color: Color(0xFF0D47A1),
-                              ),
+                              prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF0D47A1)),
                               hintText: "Username",
                               filled: true,
                               fillColor: Colors.grey[100],
@@ -167,9 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 18,
-                              ),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 18),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -177,21 +173,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             controller: _passwordController,
                             obscureText: _obscurePassword,
                             decoration: InputDecoration(
-                              prefixIcon: const Icon(
-                                Icons.lock_outline,
-                                color: Color(0xFF0D47A1),
-                              ),
+                              prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF0D47A1)),
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
+                                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
                                   color: Colors.grey,
                                 ),
                                 onPressed: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
+                                  setState(() => _obscurePassword = !_obscurePassword);
                                 },
                               ),
                               hintText: "Password",
@@ -201,35 +190,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 18,
-                              ),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 18),
                             ),
                           ),
                           const SizedBox(height: 30),
-                          // Gradient login button
-                          Container(
+
+                          // Login Button
+                          SizedBox(
                             width: double.infinity,
                             height: 52,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(30),
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 6,
-                                  offset: Offset(0, 3),
-                                ),
-                              ],
-                            ),
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
+                                backgroundColor: const Color(0xFF1565C0),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(30),
                                 ),
@@ -248,11 +220,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 30),
                     GestureDetector(
                       onTap: _goToSignup,
                       child: const Text(
-                        "Don't have an account?  Sign Up",
+                        "Don't have an account? Sign Up",
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,

@@ -126,7 +126,7 @@ class _AdminFeedbackScreenState extends State<AdminFeedbackScreen>
                                       fontSize: 18),
                                 ),
                                 subtitle: const Text(
-                                  "Tap to view and add feedback",
+                                  "Tap to view feedback & reply",
                                   style: TextStyle(color: Colors.white70),
                                 ),
                                 trailing: const Icon(Icons.arrow_forward_ios,
@@ -147,6 +147,7 @@ class _AdminFeedbackScreenState extends State<AdminFeedbackScreen>
 }
 
 /// 📋 Student Feedback Detail Screen
+/// 📋 Student Feedback Detail Screen (Updated)
 class StudentFeedbackDetailScreen extends StatefulWidget {
   final String username;
   const StudentFeedbackDetailScreen({super.key, required this.username});
@@ -157,13 +158,20 @@ class StudentFeedbackDetailScreen extends StatefulWidget {
 }
 
 class _StudentFeedbackDetailScreenState
-    extends State<StudentFeedbackDetailScreen> {
+    extends State<StudentFeedbackDetailScreen>
+    with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _tasks = [];
-  final Map<int, TextEditingController> _feedbackControllers = {};
+  final Map<int, TextEditingController> _replyControllers = {};
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..forward();
+
     _loadTasks();
   }
 
@@ -174,33 +182,37 @@ class _StudentFeedbackDetailScreenState
 
     final List<dynamic> decoded = jsonDecode(data);
     setState(() {
-      _tasks = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+      _tasks = decoded.map((e) {
+        final map = Map<String, dynamic>.from(e);
+        if (!map.containsKey('feedback')) map['feedback'] = '';
+        if (!map.containsKey('user_reply')) map['user_reply'] = '';
+        return map;
+      }).toList();
+
       for (int i = 0; i < _tasks.length; i++) {
-        _feedbackControllers[i] =
-            TextEditingController(text: _tasks[i]['feedback'] ?? '');
+        _replyControllers[i] =
+            TextEditingController(text: _tasks[i]['user_reply']);
       }
     });
   }
 
-  Future<void> _saveFeedback(int index) async {
+  Future<void> _saveReply(int index) async {
     final prefs = await SharedPreferences.getInstance();
-    _tasks[index]['feedback'] = _feedbackControllers[index]?.text ?? '';
+    _tasks[index]['user_reply'] = _replyControllers[index]?.text ?? '';
     await prefs.setString('tasks_${widget.username}', jsonEncode(_tasks));
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('✅ Feedback saved successfully!'),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.green,
+        content: Text('✅ Reply saved successfully!'),
+        backgroundColor: Colors.blueAccent,
       ),
     );
   }
 
   @override
   void dispose() {
-    for (var controller in _feedbackControllers.values) {
-      controller.dispose();
-    }
+    for (var c in _replyControllers.values) c.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -209,11 +221,10 @@ class _StudentFeedbackDetailScreenState
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
+        title: Text("${widget.username}'s Feedback"),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: Text("${widget.username}'s Feedback",
-            style: const TextStyle(color: Colors.white)),
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -226,7 +237,7 @@ class _StudentFeedbackDetailScreenState
         child: _tasks.isEmpty
             ? const Center(
                 child: Text(
-                  "No tasks found.",
+                  "No feedback found.",
                   style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
               )
@@ -235,68 +246,139 @@ class _StudentFeedbackDetailScreenState
                 itemCount: _tasks.length,
                 itemBuilder: (context, index) {
                   final task = _tasks[index];
-                  final controller = _feedbackControllers[index]!;
+                  final replyController = _replyControllers[index]!;
+                  final delay = 0.1 * index;
 
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                  return AnimatedBuilder(
+                    animation: _animationController,
+                    builder: (context, child) {
+                      final value = Curves.easeOut.transform(
+                        (_animationController.value - delay).clamp(0.0, 1.0),
+                      );
+                      return Opacity(
+                        opacity: value,
+                        child: Transform.translate(
+                          offset: Offset(0, (1 - value) * 40),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              border: Border.all(
+                                  color: Colors.white.withOpacity(0.3)),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                          ),
-                          child: ListTile(
-                            title: Text(
-                              task['task'],
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Hours: ${task['hours']}",
-                                  style: const TextStyle(
-                                      color: Colors.white70, fontSize: 13),
-                                ),
-                                const SizedBox(height: 8),
-                                TextField(
-                                  controller: controller,
-                                  style: const TextStyle(color: Colors.white),
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: Colors.white.withOpacity(0.1),
-                                    hintText: "Write feedback here...",
-                                    hintStyle: const TextStyle(
-                                        color: Colors.white60),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide(
-                                          color: Colors.white.withOpacity(0.5)),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    task['task'] ?? 'Untitled Task',
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16),
+                                  ),
+                                  const SizedBox(height: 8),
+
+                                  // 🧩 Student feedback section
+                                  const Text(
+                                    "Student Feedback:",
+                                    style: TextStyle(
+                                        color: Colors.white70, fontSize: 14),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      task['feedback']?.isNotEmpty == true
+                                          ? task['feedback']
+                                          : "No feedback provided.",
+                                      style:
+                                          const TextStyle(color: Colors.white),
                                     ),
                                   ),
-                                  maxLines: 2,
-                                ),
-                                const SizedBox(height: 8),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blueAccent,
+                                  const SizedBox(height: 12),
+
+                                  // 💬 Display saved admin reply
+                                  if (task['user_reply'] != null &&
+                                      task['user_reply'].toString().isNotEmpty)
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          "Admin Reply:",
+                                          style: TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 14),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                Colors.white.withOpacity(0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            task['user_reply'],
+                                            style: const TextStyle(
+                                                color: Colors.white),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                      ],
                                     ),
-                                    onPressed: () => _saveFeedback(index),
-                                    icon: const Icon(Icons.save_alt_rounded),
-                                    label: const Text("Save Feedback"),
+
+                                  // ✏️ Reply textfield
+                                  TextField(
+                                    controller: replyController,
+                                    style:
+                                        const TextStyle(color: Colors.white),
+                                    decoration: InputDecoration(
+                                      labelText: "Edit or Add Admin Reply",
+                                      labelStyle: const TextStyle(
+                                          color: Colors.white70),
+                                      filled: true,
+                                      fillColor: Colors.white.withOpacity(0.05),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    maxLines: 2,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 6),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: ElevatedButton.icon(
+                                      onPressed: () => _saveReply(index),
+                                      icon: const Icon(Icons.save),
+                                      label: const Text("Save Reply"),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            Colors.lightBlueAccent,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -309,3 +391,4 @@ class _StudentFeedbackDetailScreenState
     );
   }
 }
+

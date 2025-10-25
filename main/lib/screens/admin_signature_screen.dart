@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:ui' show ImageFilter;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signature/signature.dart';
-import 'dart:typed_data';
 
 /// 🌐 Admin Signature Main Screen
 class AdminSignatureScreen extends StatefulWidget {
@@ -92,71 +92,62 @@ class _AdminSignatureScreenState extends State<AdminSignatureScreen>
                   style: TextStyle(color: Colors.white, fontSize: 18),
                 ),
               )
-            : FadeTransition(
-                opacity: _controller,
-                child: ListView.builder(
-                  padding: const EdgeInsets.only(top: 100, bottom: 20),
-                  itemCount: _students.length,
-                  itemBuilder: (context, index) {
-                    final student = _students[index];
-                    final delay = index * 0.1;
+            : ListView.builder(
+                padding: const EdgeInsets.only(top: 100, bottom: 20),
+                itemCount: _students.length,
+                itemBuilder: (context, index) {
+                  final student = _students[index];
+                  final delay = index * 0.05;
 
-                    return AnimatedBuilder(
-                      animation: _controller,
-                      builder: (context, child) {
-                        final animationValue = Curves.easeOut.transform(
-                          (_controller.value - delay).clamp(0.0, 1.0),
-                        );
-                        return Opacity(
-                          opacity: animationValue,
-                          child: Transform.translate(
-                            offset: Offset(0, (1 - animationValue) * 40),
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
-                                border: Border.all(
-                                    color: Colors.white.withOpacity(0.3)),
-                                borderRadius: BorderRadius.circular(16),
+                  return AnimatedBuilder(
+                    animation: _controller,
+                    builder: (context, child) {
+                      final animationValue = Curves.easeOutBack.transform(
+                      (_controller.value - delay).clamp(0.0, 1.0),
+                    ).clamp(0.0, 1.0);
+                      return Opacity(
+                        opacity: animationValue,
+                        child: Transform.translate(
+                          offset: Offset(0, (1 - animationValue) * 30),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              border: Border.all(color: Colors.white.withOpacity(0.3)),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.blue.shade700,
+                                child: const Icon(Icons.person, color: Colors.white),
                               ),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: Colors.blue.shade700,
-                                  child: const Icon(Icons.person, color: Colors.white),
-                                ),
-                                title: Text(
-                                  student,
+                              title: Text(student,
                                   style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                                subtitle: const Text(
-                                  "Tap to view and sign tasks",
-                                  style: TextStyle(color: Colors.white70),
-                                ),
-                                trailing: const Icon(Icons.arrow_forward_ios,
-                                    color: Colors.white70),
-                                onTap: () => _openStudentTasks(student),
-                              ),
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18)),
+                              subtitle: const Text("Tap to view and sign tasks",
+                                  style: TextStyle(color: Colors.white70)),
+                              trailing:
+                                  const Icon(Icons.arrow_forward_ios, color: Colors.white70),
+                              onTap: () => _openStudentTasks(student),
                             ),
                           ),
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
       ),
     );
@@ -190,7 +181,6 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
     super.initState();
     _loadTasks();
 
-    // 🎨 Animated background controller
     _bgController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 15),
@@ -292,196 +282,133 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
             },
           ),
 
-          /// 🪞 Main content (Frosted Glass Cards)
+          /// 🪞 Main content
           SafeArea(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 500),
-              child: _tasks.isEmpty
-                  ? const Center(
-                      child: Text(
-                        "No tasks found",
-                        style: TextStyle(color: Colors.white70, fontSize: 16),
-                      ),
-                    )
-                  : Column(
-                      children: [
-                        Expanded(
-                          child: ListView.builder(
-                            padding: const EdgeInsets.all(14),
-                            itemCount: _tasks.length,
-                            itemBuilder: (context, index) {
-                              final task = _tasks[index];
-                              final isSelected = _selectedTaskIndex == index;
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(14),
+                    itemCount: _tasks.length,
+                    itemBuilder: (context, index) {
+                      final task = _tasks[index];
+                      final isSelected = _selectedTaskIndex == index;
+                      final actualHours = task['actualHours'] ?? task['hours'] ?? 0;
 
-                              return AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeOut,
-                                margin:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(18),
-                                  child: BackdropFilter(
-                                    filter: ImageFilter.blur(
-                                        sigmaX: 10, sigmaY: 10),
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: isSelected
-                                            ? Colors.white.withOpacity(0.9)
-                                            : Colors.white.withOpacity(0.7),
-                                        borderRadius:
-                                            BorderRadius.circular(18),
-                                        border: Border.all(
-                                          color: isSelected
-                                              ? Colors.blueAccent
-                                              : Colors.transparent,
-                                          width: 1.5,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color:
-                                                Colors.black.withOpacity(0.1),
-                                            blurRadius: 6,
-                                            offset: const Offset(2, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: ListTile(
-                                        contentPadding:
-                                            const EdgeInsets.all(14),
-                                        leading: CircleAvatar(
-                                          backgroundColor: task['approved']
-                                              ? Colors.green
-                                              : Colors.blueAccent,
-                                          child: Icon(
-                                            task['approved']
-                                                ? Icons.check_rounded
-                                                : Icons.assignment_rounded,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        title: Text(
-                                          task['task'],
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        subtitle: Text(
-                                          'Hours: ${task['hours']}  •  ${task['approved'] ? 'Approved' : 'Pending'}',
-                                          style: TextStyle(
-                                            color: task['approved']
-                                                ? Colors.green.shade700
-                                                : Colors.orange.shade800,
-                                          ),
-                                        ),
-                                        onTap: () {
-                                          if (!task['approved']) {
-                                            setState(() {
-                                              _selectedTaskIndex = index;
-                                            });
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeInOut,
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? Colors.white.withOpacity(0.95)
+                              : Colors.white.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: isSelected ? Colors.blueAccent : Colors.transparent,
+                            width: 2,
                           ),
                         ),
-
-                        /// ✍️ Signature Section (Animated Slide-Up)
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 50),
-                          child: _selectedTaskIndex == null
-                              ? const SizedBox.shrink()
-                              : SlideTransition(
-                                  position: Tween<Offset>(
-                                    begin: const Offset(0, 0.5),
-                                    end: Offset.zero,
-                                  ).animate(CurvedAnimation(
-                                    parent: _bgController,
-                                    curve: Curves.easeOut,
-                                  )),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(14),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.9),
-                                      borderRadius:
-                                          const BorderRadius.vertical(
-                                              top: Radius.circular(25)),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.15),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, -3),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        const Text(
-                                          "Admin Signature",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Container(
-                                          height: 120,
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            border: Border.all(
-                                                color: Colors.grey.shade400),
-                                            color: Colors.white,
-                                          ),
-                                          child: Signature(
-                                            controller: _signatureController,
-                                            backgroundColor: Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            ElevatedButton.icon(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    Colors.blueAccent,
-                                                shape:
-                                                    RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                ),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 22,
-                                                        vertical: 10),
-                                              ),
-                                              icon: const Icon(
-                                                  Icons.check_circle_outline),
-                                              label:
-                                                  const Text("Approve Task"),
-                                              onPressed: _approveSelectedTask,
-                                            ),
-                                            const SizedBox(width: 12),
-                                            OutlinedButton.icon(
-                                              icon: const Icon(Icons.clear),
-                                              label: const Text("Clear"),
-                                              onPressed: () =>
-                                                  _signatureController.clear(),
-                                            ),
-                                          ],
-                                        )
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: task['approved']
+                                ? Colors.green
+                                : Colors.blueAccent,
+                            child: Icon(
+                              task['approved']
+                                  ? Icons.check_rounded
+                                  : Icons.assignment_rounded,
+                              color: Colors.white,
+                            ),
+                          ),
+                          title: Text(task['task'],
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w600)),
+                          subtitle: Text(
+                              'Actual Hours: $actualHours  •  ${task['approved'] ? 'Approved' : 'Pending'}',
+                              style: TextStyle(
+                                color: task['approved']
+                                    ? Colors.green.shade700
+                                    : Colors.orange.shade800,
+                              )),
+                          onTap: () {
+                            if (!task['approved']) {
+                              setState(() => _selectedTaskIndex = index);
+                            }
+                          },
                         ),
-                      ],
-                    ),
+                      );
+                    },
+                  ),
+                ),
+
+                /// ✍️ Signature Panel
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 400),
+                  transitionBuilder: (child, anim) {
+                    final offsetAnim = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
+                        .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic));
+                    return SlideTransition(
+                        position: offsetAnim, child: FadeTransition(opacity: anim, child: child));
+                  },
+                  child: _selectedTaskIndex == null
+                      ? const SizedBox.shrink()
+                      : Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.15),
+                                blurRadius: 10,
+                                offset: const Offset(0, -3),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              const Text("Admin Signature",
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              const SizedBox(height: 8),
+                              Container(
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey.shade400),
+                                  color: Colors.white,
+                                ),
+                                child: Signature(controller: _signatureController, backgroundColor: Colors.white),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blueAccent,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+                                    ),
+                                    icon: const Icon(Icons.check_circle_outline),
+                                    label: const Text("Approve Task"),
+                                    onPressed: _approveSelectedTask,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  OutlinedButton.icon(
+                                    icon: const Icon(Icons.clear),
+                                    label: const Text("Clear"),
+                                    onPressed: () => _signatureController.clear(),
+                                  ),
+                                ],
+                              )
+                            ],
+                          ),
+                        ),
+                ),
+              ],
             ),
           ),
         ],
@@ -489,8 +416,6 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
     );
   }
 }
-
-
 
 /// 📊 Analytics Report Screen
 class AnalyticsReportScreen extends StatefulWidget {
@@ -509,7 +434,7 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
   void initState() {
     super.initState();
     _controller =
-        AnimationController(vsync: this, duration: const Duration(seconds: 1));
+        AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
     _generateReport();
   }
 
@@ -530,29 +455,50 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
 
       final totalTasks = tasks.length;
       final approvedTasks = tasks.where((t) => t['approved'] == true).length;
-      final totalHours = tasks.fold<double>(
-        0,
-        (sum, t) => sum + double.tryParse(t['hours'].toString())!,
-      );
+
+      // ✅ Safely compute actual hours (fallback to hours if needed)
+      final totalHours = tasks.fold<double>(0, (sum, t) {
+        final raw = t['actualHours'] ?? t['hours'];
+        return sum + (double.tryParse(raw?.toString() ?? '0') ?? 0);
+      });
 
       final approvalRate = totalTasks == 0
-          ? 0
+          ? "0"
           : ((approvedTasks / totalTasks) * 100).toStringAsFixed(1);
 
       tempReport.add({
         'student': studentName,
         'tasks': totalTasks,
         'approved': approvedTasks,
-        'hours': totalHours,
+        'hours': totalHours.toStringAsFixed(2),
         'rate': approvalRate,
       });
     }
 
-    setState(() {
-      _report = tempReport;
-    });
-
+    setState(() => _report = tempReport);
     _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _infoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white70, size: 18),
+          const SizedBox(width: 6),
+          Text("$label: ", style: const TextStyle(color: Colors.white70)),
+          Text(value,
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
   }
 
   @override
@@ -562,7 +508,8 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
-        title: const Text("Analytics Report", style: TextStyle(color: Colors.white)),
+        title:
+            const Text("Analytics Report", style: TextStyle(color: Colors.white)),
         centerTitle: true,
       ),
       body: Container(
@@ -590,13 +537,12 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
                     return AnimatedBuilder(
                       animation: _controller,
                       builder: (context, child) {
-                        final value = Curves.easeOut.transform(
-                          (_controller.value - (index * 0.1)).clamp(0.0, 1.0),
-                        );
+                        double value = (_controller.value - index * 0.1).clamp(0.0, 1.0);
+                        final curved = Curves.easeOut.transform(value).clamp(0.0, 1.0);
                         return Opacity(
-                          opacity: value,
+                          opacity: curved,
                           child: Transform.translate(
-                            offset: Offset(0, (1 - value) * 40),
+                            offset: Offset(0, (1 - curved) * 40),
                             child: child,
                           ),
                         );
@@ -612,8 +558,7 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
                                 color: Colors.white.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
-                                ),
+                                    color: Colors.white.withOpacity(0.3)),
                               ),
                               child: ListTile(
                                 leading: CircleAvatar(
@@ -631,14 +576,13 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
                                 subtitle: Padding(
                                   padding: const EdgeInsets.only(top: 8.0),
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       _infoRow(Icons.task, "Total Tasks",
                                           student['tasks'].toString()),
                                       _infoRow(Icons.check_circle, "Approved",
                                           student['approved'].toString()),
-                                      _infoRow(Icons.access_time, "Total Hours",
+                                      _infoRow(Icons.access_time, "Actual Hours",
                                           student['hours'].toString()),
                                       _infoRow(Icons.percent, "Approval Rate",
                                           "${student['rate']}%"),
@@ -654,25 +598,6 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
                   },
                 ),
         ),
-      ),
-    );
-  }
-
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white70, size: 18),
-          const SizedBox(width: 6),
-          Text(
-            "$label: ",
-            style: const TextStyle(color: Colors.white70),
-          ),
-          Text(value,
-              style:
-                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        ],
       ),
     );
   }
