@@ -76,6 +76,7 @@ class _LogTaskScreenState extends State<LogTaskScreen>
       'completed': false,
       'completionSignature': null,
       'approved': false,
+      'assignedBy': 'student', // 🔹 mark student-created
       'startTime': now.toIso8601String(),
       'endTime': null,
       'totalHours': null,
@@ -94,6 +95,15 @@ class _LogTaskScreenState extends State<LogTaskScreen>
   }
 
   Future<void> _showCompletionPopup(int index) async {
+    final task = _tasks[index];
+    // 🔹 Block admin-assigned tasks
+    if (task['assignedBy'] == 'admin') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You can't complete admin-assigned tasks.")),
+      );
+      return;
+    }
+
     final SignatureController sigController = SignatureController(
       penStrokeWidth: 2,
       penColor: Colors.black,
@@ -263,6 +273,7 @@ class _LogTaskScreenState extends State<LogTaskScreen>
                           itemCount: _tasks.length,
                           itemBuilder: (context, i) {
                             final t = _tasks[i];
+                            final isAdmin = t['assignedBy'] == 'admin'; // 🔹 new check
                             final startTime = t['startTime'] != null
                                 ? TimeOfDay.fromDateTime(
                                         DateTime.parse(t['startTime']))
@@ -292,6 +303,11 @@ class _LogTaskScreenState extends State<LogTaskScreen>
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    if (isAdmin)
+                                      const Text("Assigned by Admin",
+                                          style: TextStyle(
+                                              color: Colors.amberAccent,
+                                              fontWeight: FontWeight.bold)),
                                     Text("Start: $startTime",
                                         style: const TextStyle(
                                             color: Colors.white70)),
@@ -315,17 +331,20 @@ class _LogTaskScreenState extends State<LogTaskScreen>
                                     ),
                                   ],
                                 ),
-                                trailing: !(t['completed'] ?? false)
-                                    ? ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                Colors.greenAccent),
-                                        onPressed: () =>
-                                            _showCompletionPopup(i),
-                                        child: const Text('Complete'),
-                                      )
-                                    : const Icon(Icons.check_circle,
-                                        color: Colors.greenAccent),
+                                trailing: isAdmin
+                                    ? const Icon(Icons.lock_outline,
+                                        color: Colors.grey)
+                                    : !(t['completed'] ?? false)
+                                        ? ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    Colors.greenAccent),
+                                            onPressed: () =>
+                                                _showCompletionPopup(i),
+                                            child: const Text('Complete'),
+                                          )
+                                        : const Icon(Icons.check_circle,
+                                            color: Colors.greenAccent),
                               ),
                             );
                           },
@@ -339,6 +358,7 @@ class _LogTaskScreenState extends State<LogTaskScreen>
       floatingActionButton: FloatingActionButton(
         backgroundColor: cardAccent,
         child: const Icon(Icons.add),
+        // 🔹 disable add button if all tasks are admin-assigned
         onPressed: () {
           showModalBottomSheet(
             context: context,
