@@ -52,8 +52,12 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
 
       double computedHours = 0;
       for (var t in tasks) {
-        final start = t['startTime'] != null ? DateTime.tryParse(t['startTime']) : null;
-        final end = t['endTime'] != null ? DateTime.tryParse(t['endTime']) : null;
+        final start = t['startTime'] != null
+            ? DateTime.tryParse(t['startTime'])
+            : null;
+        final end = t['endTime'] != null
+            ? DateTime.tryParse(t['endTime'])
+            : null;
 
         if (start != null && end != null) {
           final duration = end.difference(start).inMinutes / 60.0;
@@ -122,19 +126,25 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400)),
-                Text(value,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold)),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -171,12 +181,15 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
             children: [
               Icon(icon, color: Colors.white, size: 38),
               const SizedBox(height: 10),
-              Text(title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold)),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ),
@@ -191,8 +204,22 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text("User Dashboard",
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "User Dashboard",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+            color: Colors.white,
+            letterSpacing: 0.8,
+            shadows: [
+              Shadow(
+                color: Colors.black26,
+                offset: Offset(1, 1),
+                blurRadius: 2,
+              ),
+            ],
+          ),
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -217,7 +244,8 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                     ElevatedButton(
                       onPressed: () => Navigator.pop(ctx, true),
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent),
+                        backgroundColor: Colors.redAccent,
+                      ),
                       child: const Text("Logout"),
                     ),
                   ],
@@ -238,14 +266,33 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Welcome, ${widget.username} 👋",
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    const Text("Here’s your progress summary:",
-                        style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    // 👋 Enhanced Welcome Text
+                    Text(
+                      "Welcome back, ${widget.username} 👋",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black45,
+                            offset: Offset(1, 2),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "Here’s your progress summary:",
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.85),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
                     const SizedBox(height: 14),
 
                     // ✅ Summary cards
@@ -269,7 +316,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                           value: "$totalTasks",
                           gradientColors: [
                             Colors.deepPurple,
-                            Colors.deepPurple.shade700
+                            Colors.deepPurple.shade700,
                           ],
                         ),
                         _buildSummaryCard(
@@ -278,17 +325,14 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                           value: "$pendingTasks",
                           gradientColors: [
                             Colors.orange,
-                            Colors.deepOrange.shade700
+                            Colors.deepOrange.shade700,
                           ],
                         ),
                         _buildSummaryCard(
                           icon: Icons.check_circle,
                           label: "Completed",
                           value: "$completedTasks",
-                          gradientColors: [
-                            Colors.green,
-                            Colors.green.shade700
-                          ],
+                          gradientColors: [Colors.green, Colors.green.shade700],
                         ),
                       ],
                     ),
@@ -309,46 +353,45 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                           title: "Log Tasks",
                           gradientColors: [
                             Colors.indigo,
-                            Colors.indigo.shade700
+                            Colors.indigo.shade700,
                           ],
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) =>
-                                      LogTaskScreen(username: widget.username)),
+                                builder: (_) =>
+                                    LogTaskScreen(username: widget.username),
+                              ),
                             ).then((_) => _loadTaskSummary());
                           },
                         ),
                         _buildActionCard(
                           icon: Icons.feedback,
                           title: "Feedback",
-                          gradientColors: [
-                            Colors.orange,
-                            Colors.deepOrange
-                          ],
+                          gradientColors: [Colors.orange, Colors.deepOrange],
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) =>
-                                      UserFeedbackScreen(username: widget.username)),
+                                builder: (_) => UserFeedbackScreen(
+                                  username: widget.username,
+                                ),
+                              ),
                             );
                           },
                         ),
                         _buildActionCard(
                           icon: Icons.bar_chart,
                           title: "Reports",
-                          gradientColors: [
-                            Colors.teal,
-                            Colors.teal.shade800
-                          ],
+                          gradientColors: [Colors.teal, Colors.teal.shade800],
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) =>
-                                      UserAnalyticsScreen(username: widget.username)),
+                                builder: (_) => UserAnalyticsScreen(
+                                  username: widget.username,
+                                ),
+                              ),
                             );
                           },
                         ),
@@ -357,7 +400,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                           title: "Settings",
                           gradientColors: [
                             Colors.purple,
-                            Colors.deepPurple.shade800
+                            Colors.deepPurple.shade800,
                           ],
                           onTap: () {},
                         ),
