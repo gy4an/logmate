@@ -18,7 +18,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int _studentCount = 0;
   int _taskCount = 0;
   int _pendingCount = 0;
-  double _totalActualHours = 0.0; // ✅ NEW — Track total actual hours
+  double _totalActualHours = 0.0;
 
   @override
   void initState() {
@@ -26,14 +26,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _loadSummaryData();
   }
 
-    Future<void> _loadSummaryData() async {
+  // ✅ UPDATED FUNCTION (only this part changed)
+  Future<void> _loadSummaryData() async {
     final prefs = await SharedPreferences.getInstance();
     final keys = prefs.getKeys();
 
     int students = 0;
     int totalTasks = 0;
     int pendingTasks = 0;
-    int completedTasks = 0;
     double totalActualHours = 0.0;
 
     for (String key in keys) {
@@ -46,7 +46,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         try {
           tasksList = jsonDecode(jsonData) as List<dynamic>;
         } catch (e) {
-          // if malformed, skip this student's tasks
           continue;
         }
 
@@ -56,30 +55,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           if (raw is! Map) continue;
           final Map<String, dynamic> t = Map<String, dynamic>.from(raw);
 
-          // read status/approved/actualHours (robustly)
-          final String status = (t['status']?.toString() ?? '').trim();
-          final bool approved = (t['approved'] == true);
-          final double actual = double.tryParse(
-                (t['actualHours'] ?? t['hours'] ?? '0').toString(),
-              ) ??
-              0.0;
-
-          totalActualHours += actual;
-
-          // Completed if status explicitly 'Completed'
-          if (status.toLowerCase() == 'completed') {
-            completedTasks++;
-            continue;
+          final bool completed = (t['completed'] == true);
+          if (completed && t['totalHours'] != null) {
+            final double hours =
+                double.tryParse(t['totalHours'].toString()) ?? 0.0;
+            totalActualHours += hours;
           }
 
-          // If task already approved (but not marked Completed) treat as completed for pending calculation
-          if (approved) {
-            completedTasks++;
-            continue;
+          if (completed) {
+            // completed, no need to count as pending
+          } else {
+            pendingTasks++;
           }
-
-          // Otherwise it's pending (ongoing, pending approval, not started, etc.)
-          pendingTasks++;
         }
       }
     }
@@ -91,22 +78,30 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _totalActualHours = totalActualHours;
     });
   }
-
+  // ✅ END OF UPDATED FUNCTION
 
   Future<bool> _showLogoutDialog(BuildContext context) async {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text("Logout", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Logout",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: const Text("Are you sure you want to logout?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text("Logout"),
           ),
@@ -139,20 +134,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(title,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 13,
-                      )),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 13,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(value,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      )),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
-              )
+              ),
             ],
           ),
         ),
@@ -227,8 +226,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
-          title: const Text("Admin Dashboard",
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
+          title: const Text(
+            "Admin Dashboard",
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+          ),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -236,7 +237,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           actions: [
             IconButton(
               icon: const Icon(Icons.refresh_rounded),
-              onPressed: _loadSummaryData, // 🔄 Manual refresh button
+              onPressed: _loadSummaryData,
             ),
             IconButton(
               icon: const Icon(Icons.logout_rounded),
@@ -245,7 +246,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 if (shouldLogout) {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
                   );
                 }
               },
@@ -266,12 +269,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Welcome, Admin 👋",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      )),
+                  const Text(
+                    "Welcome, Admin 👋",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                   const SizedBox(height: 6),
                   Text(
                     "Here’s today’s summary and management tools.",
@@ -282,23 +287,41 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // ✅ Dynamic Summary Section
                   Row(
                     children: [
-                      summaryCard("Students", "$_studentCount", Colors.teal, Icons.people),
-                      summaryCard("Tasks", "$_taskCount", Colors.amber, Icons.task_alt),
+                      summaryCard(
+                        "Students",
+                        "$_studentCount",
+                        Colors.teal,
+                        Icons.people,
+                      ),
+                      summaryCard(
+                        "Tasks",
+                        "$_taskCount",
+                        Colors.amber,
+                        Icons.task_alt,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      summaryCard("Pending", "$_pendingCount", Colors.redAccent, Icons.pending_actions),
-                      summaryCard("Actual Hours", "${_totalActualHours.toStringAsFixed(1)}h", Colors.lightBlueAccent, Icons.access_time),
+                      summaryCard(
+                        "Pending",
+                        "$_pendingCount",
+                        Colors.redAccent,
+                        Icons.pending_actions,
+                      ),
+                      summaryCard(
+                        "Actual Hours",
+                        "${_totalActualHours.toStringAsFixed(1)}h",
+                        Colors.lightBlueAccent,
+                        Icons.access_time,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 25),
 
-                  // ✅ Dashboard Cards
                   Expanded(
                     child: GridView.count(
                       crossAxisCount: 2,
@@ -308,11 +331,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         dashboardCard(
                           icon: Icons.edit_document,
                           title: "Sign Documents",
-                          colors: [Colors.indigo.shade400, Colors.indigo.shade700],
+                          colors: [
+                            Colors.indigo.shade400,
+                            Colors.indigo.shade700,
+                          ],
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const AdminSignatureScreen()),
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const AdminSignatureScreen(),
+                              ),
                             );
                           },
                         ),
@@ -323,29 +352,44 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const AdminAnalyticsScreen()),
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const AdminAnalyticsScreen(),
+                              ),
                             );
                           },
                         ),
                         dashboardCard(
                           icon: Icons.manage_accounts_outlined,
                           title: "Manage Employee Tasks",
-                          colors: [Colors.deepPurple.shade400, Colors.deepPurple.shade700],
+                          colors: [
+                            Colors.deepPurple.shade400,
+                            Colors.deepPurple.shade700,
+                          ],
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const ManageEmployeeTasksScreen()),
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const ManageEmployeeTasksScreen(),
+                              ),
                             );
                           },
                         ),
                         dashboardCard(
                           icon: Icons.feedback_outlined,
                           title: "Feedback",
-                          colors: [Colors.orange.shade400, Colors.orange.shade700],
+                          colors: [
+                            Colors.orange.shade400,
+                            Colors.orange.shade700,
+                          ],
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const AdminFeedbackScreen()),
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const AdminFeedbackScreen(),
+                              ),
                             );
                           },
                         ),

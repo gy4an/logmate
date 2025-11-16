@@ -21,8 +21,10 @@ class _AdminSignatureScreenState extends State<AdminSignatureScreen>
   @override
   void initState() {
     super.initState();
-    _controller =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
     _loadStudents();
   }
 
@@ -45,11 +47,10 @@ class _AdminSignatureScreenState extends State<AdminSignatureScreen>
     Navigator.push(
       context,
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => StudentTaskApprovalScreen(username: username),
-        transitionsBuilder: (_, animation, __, child) => FadeTransition(
-          opacity: animation,
-          child: child,
-        ),
+        pageBuilder: (_, __, ___) =>
+            StudentTaskApprovalScreen(username: username),
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
       ),
     );
   }
@@ -67,7 +68,10 @@ class _AdminSignatureScreenState extends State<AdminSignatureScreen>
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         elevation: 0,
-        title: const Text("Admin - Students", style: TextStyle(color: Colors.white)),
+        title: const Text(
+          "Admin - Students",
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.transparent,
         actions: [
           IconButton(
@@ -102,9 +106,11 @@ class _AdminSignatureScreenState extends State<AdminSignatureScreen>
                   return AnimatedBuilder(
                     animation: _controller,
                     builder: (context, child) {
-                      final animationValue = Curves.easeOutBack.transform(
-                      (_controller.value - delay).clamp(0.0, 1.0),
-                    ).clamp(0.0, 1.0);
+                      final animationValue = Curves.easeOutBack
+                          .transform(
+                            (_controller.value - delay).clamp(0.0, 1.0),
+                          )
+                          .clamp(0.0, 1.0);
                       return Opacity(
                         opacity: animationValue,
                         child: Transform.translate(
@@ -114,8 +120,10 @@ class _AdminSignatureScreenState extends State<AdminSignatureScreen>
                       );
                     },
                     child: Padding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(16),
                         child: BackdropFilter(
@@ -123,23 +131,35 @@ class _AdminSignatureScreenState extends State<AdminSignatureScreen>
                           child: Container(
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.15),
-                              border: Border.all(color: Colors.white.withOpacity(0.3)),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                              ),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: Colors.blue.shade700,
-                                child: const Icon(Icons.person, color: Colors.white),
+                                child: const Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                ),
                               ),
-                              title: Text(student,
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18)),
-                              subtitle: const Text("Tap to view and sign tasks",
-                                  style: TextStyle(color: Colors.white70)),
-                              trailing:
-                                  const Icon(Icons.arrow_forward_ios, color: Colors.white70),
+                              title: Text(
+                                student,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              subtitle: const Text(
+                                "Tap to view and sign tasks",
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                              trailing: const Icon(
+                                Icons.arrow_forward_ios,
+                                color: Colors.white70,
+                              ),
                               onTap: () => _openStudentTasks(student),
                             ),
                           ),
@@ -207,14 +227,16 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
 
   Future<void> _approveSelectedTask() async {
     if (_selectedTaskIndex == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Select a task first')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Select a task first')));
       return;
     }
 
     if (_signatureController.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Please add signature')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please add signature')));
       return;
     }
 
@@ -223,11 +245,31 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
 
     final adminSigEncoded = base64Encode(adminSig);
 
+    final now = DateTime.now();
+    final formattedTime =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} "
+        "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
+
+    final selectedTask = _tasks[_selectedTaskIndex!];
+    final actualHours = (() {
+      try {
+        if (selectedTask['startTime'] != null &&
+            selectedTask['endTime'] != null) {
+          final start = DateTime.parse(selectedTask['startTime']);
+          final end = DateTime.parse(selectedTask['endTime']);
+          return end.difference(start).inMinutes / 60.0; // hours
+        }
+      } catch (_) {}
+      return double.tryParse(selectedTask['hours']?.toString() ?? '0') ?? 0;
+    })();
+
     setState(() {
       _tasks[_selectedTaskIndex!] = {
-        ..._tasks[_selectedTaskIndex!],
+        ...selectedTask,
         'approved': true,
         'adminSignature': adminSigEncoded,
+        'approvalTime': formattedTime,
+        'actualHours': actualHours,
       };
     });
 
@@ -261,7 +303,6 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
       ),
       body: Stack(
         children: [
-          /// 🌈 Animated gradient background
           AnimatedBuilder(
             animation: _bgController,
             builder: (context, _) {
@@ -269,10 +310,16 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Color.lerp(const Color(0xFF004AAD),
-                          const Color(0xFF5AB2FF), _bgController.value)!,
-                      Color.lerp(const Color(0xFF0062E6),
-                          const Color(0xFF00C6FF), 1 - _bgController.value)!,
+                      Color.lerp(
+                        const Color(0xFF004AAD),
+                        const Color(0xFF5AB2FF),
+                        _bgController.value,
+                      )!,
+                      Color.lerp(
+                        const Color(0xFF0062E6),
+                        const Color(0xFF00C6FF),
+                        1 - _bgController.value,
+                      )!,
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -281,8 +328,6 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
               );
             },
           ),
-
-          /// 🪞 Main content
           SafeArea(
             child: Column(
               children: [
@@ -293,7 +338,8 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
                     itemBuilder: (context, index) {
                       final task = _tasks[index];
                       final isSelected = _selectedTaskIndex == index;
-                      final actualHours = task['actualHours'] ?? task['hours'] ?? 0;
+                      final actualHours =
+                          task['actualHours'] ?? task['hours'] ?? 0;
 
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 400),
@@ -305,7 +351,9 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
                               : Colors.white.withOpacity(0.7),
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: isSelected ? Colors.blueAccent : Colors.transparent,
+                            color: isSelected
+                                ? Colors.blueAccent
+                                : Colors.transparent,
                             width: 2,
                           ),
                         ),
@@ -321,16 +369,21 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
                               color: Colors.white,
                             ),
                           ),
-                          title: Text(task['task'],
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600)),
+                          title: Text(
+                            task['task'],
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                           subtitle: Text(
-                              'Actual Hours: $actualHours  •  ${task['approved'] ? 'Approved' : 'Pending'}',
-                              style: TextStyle(
-                                color: task['approved']
-                                    ? Colors.green.shade700
-                                    : Colors.orange.shade800,
-                              )),
+                            'Actual Hours: $actualHours  •  ${task['approved'] ? 'Approved' : 'Pending'}',
+                            style: TextStyle(
+                              color: task['approved']
+                                  ? Colors.green.shade700
+                                  : Colors.orange.shade800,
+                            ),
+                          ),
                           onTap: () {
                             if (!task['approved']) {
                               setState(() => _selectedTaskIndex = index);
@@ -341,15 +394,23 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
                     },
                   ),
                 ),
-
-                /// ✍️ Signature Panel
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 400),
                   transitionBuilder: (child, anim) {
-                    final offsetAnim = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
-                        .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic));
+                    final offsetAnim =
+                        Tween<Offset>(
+                          begin: const Offset(0, 0.3),
+                          end: Offset.zero,
+                        ).animate(
+                          CurvedAnimation(
+                            parent: anim,
+                            curve: Curves.easeOutCubic,
+                          ),
+                        );
                     return SlideTransition(
-                        position: offsetAnim, child: FadeTransition(opacity: anim, child: child));
+                      position: offsetAnim,
+                      child: FadeTransition(opacity: anim, child: child),
+                    );
                   },
                   child: _selectedTaskIndex == null
                       ? const SizedBox.shrink()
@@ -357,7 +418,9 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.9),
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(25),
+                            ),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.15),
@@ -368,17 +431,27 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
                           ),
                           child: Column(
                             children: [
-                              const Text("Admin Signature",
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              const Text(
+                                "Admin Signature",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                               const SizedBox(height: 8),
                               Container(
                                 height: 120,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.grey.shade400),
+                                  border: Border.all(
+                                    color: Colors.grey.shade400,
+                                  ),
                                   color: Colors.white,
                                 ),
-                                child: Signature(controller: _signatureController, backgroundColor: Colors.white),
+                                child: Signature(
+                                  controller: _signatureController,
+                                  backgroundColor: Colors.white,
+                                ),
                               ),
                               const SizedBox(height: 12),
                               Row(
@@ -390,9 +463,14 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(10),
                                       ),
-                                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 22,
+                                        vertical: 10,
+                                      ),
                                     ),
-                                    icon: const Icon(Icons.check_circle_outline),
+                                    icon: const Icon(
+                                      Icons.check_circle_outline,
+                                    ),
                                     label: const Text("Approve Task"),
                                     onPressed: _approveSelectedTask,
                                   ),
@@ -400,10 +478,11 @@ class _StudentTaskApprovalScreenState extends State<StudentTaskApprovalScreen>
                                   OutlinedButton.icon(
                                     icon: const Icon(Icons.clear),
                                     label: const Text("Clear"),
-                                    onPressed: () => _signatureController.clear(),
+                                    onPressed: () =>
+                                        _signatureController.clear(),
                                   ),
                                 ],
-                              )
+                              ),
                             ],
                           ),
                         ),
@@ -433,8 +512,10 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
   @override
   void initState() {
     super.initState();
-    _controller =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
     _generateReport();
   }
 
@@ -456,10 +537,11 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
       final totalTasks = tasks.length;
       final approvedTasks = tasks.where((t) => t['approved'] == true).length;
 
-      // ✅ Safely compute actual hours (fallback to hours if needed)
-      final totalHours = tasks.fold<double>(0, (sum, t) {
-        final raw = t['actualHours'] ?? t['hours'];
-        return sum + (double.tryParse(raw?.toString() ?? '0') ?? 0);
+      // ✅ Compute total actual hours (ensures consistent numeric parsing)
+      final totalActualHours = tasks.fold<double>(0, (sum, t) {
+        final raw = t['actualHours'] ?? t['hours'] ?? 0;
+        final parsed = double.tryParse(raw.toString()) ?? 0;
+        return sum + parsed;
       });
 
       final approvalRate = totalTasks == 0
@@ -470,7 +552,7 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
         'student': studentName,
         'tasks': totalTasks,
         'approved': approvedTasks,
-        'hours': totalHours.toStringAsFixed(2),
+        'actualHours': totalActualHours.toStringAsFixed(2),
         'rate': approvalRate,
       });
     }
@@ -493,9 +575,13 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
           Icon(icon, color: Colors.white70, size: 18),
           const SizedBox(width: 6),
           Text("$label: ", style: const TextStyle(color: Colors.white70)),
-          Text(value,
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
@@ -508,8 +594,10 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
-        title:
-            const Text("Analytics Report", style: TextStyle(color: Colors.white)),
+        title: const Text(
+          "Analytics Report",
+          style: TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
       ),
       body: Container(
@@ -537,8 +625,13 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
                     return AnimatedBuilder(
                       animation: _controller,
                       builder: (context, child) {
-                        double value = (_controller.value - index * 0.1).clamp(0.0, 1.0);
-                        final curved = Curves.easeOut.transform(value).clamp(0.0, 1.0);
+                        double value = (_controller.value - index * 0.1).clamp(
+                          0.0,
+                          1.0,
+                        );
+                        final curved = Curves.easeOut
+                            .transform(value)
+                            .clamp(0.0, 1.0);
                         return Opacity(
                           opacity: curved,
                           child: Transform.translate(
@@ -558,13 +651,10 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
                                 color: Colors.white.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                    color: Colors.white.withOpacity(0.3)),
+                                  color: Colors.white.withOpacity(0.25),
+                                ),
                               ),
                               child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: Colors.blue.shade700,
-                                  child: const Icon(Icons.person, color: Colors.white),
-                                ),
                                 title: Text(
                                   student['student'],
                                   style: const TextStyle(
@@ -573,21 +663,30 @@ class _AnalyticsReportScreenState extends State<AnalyticsReportScreen>
                                     fontSize: 18,
                                   ),
                                 ),
-                                subtitle: Padding(
-                                  padding: const EdgeInsets.only(top: 8.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _infoRow(Icons.task, "Total Tasks",
-                                          student['tasks'].toString()),
-                                      _infoRow(Icons.check_circle, "Approved",
-                                          student['approved'].toString()),
-                                      _infoRow(Icons.access_time, "Actual Hours",
-                                          student['hours'].toString()),
-                                      _infoRow(Icons.percent, "Approval Rate",
-                                          "${student['rate']}%"),
-                                    ],
-                                  ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _infoRow(
+                                      Icons.task,
+                                      "Total Tasks",
+                                      "${student['tasks']}",
+                                    ),
+                                    _infoRow(
+                                      Icons.check_circle,
+                                      "Approved",
+                                      "${student['approved']}",
+                                    ),
+                                    _infoRow(
+                                      Icons.timer,
+                                      "Total Hours",
+                                      "${student['actualHours']} hrs",
+                                    ),
+                                    _infoRow(
+                                      Icons.percent,
+                                      "Approval Rate",
+                                      "${student['rate']}%",
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),

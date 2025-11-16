@@ -45,8 +45,12 @@ class _ManageEmployeeTasksScreenState extends State<ManageEmployeeTasksScreen>
     if (accountsJson != null) {
       final List<dynamic> decoded = jsonDecode(accountsJson);
       setState(() {
-        _accounts =
-            decoded.map((item) => Map<String, dynamic>.from(item)).toList();
+        _accounts = decoded
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+
+        _accounts = _accounts.where((acc) => acc['role'] == 'user').toList();
+
         _filteredAccounts = List.from(_accounts);
       });
       _animationController.forward();
@@ -57,8 +61,9 @@ class _ManageEmployeeTasksScreenState extends State<ManageEmployeeTasksScreen>
     final query = _searchController.text.toLowerCase();
     setState(() {
       _filteredAccounts = _accounts
-          .where((acc) =>
-              (acc['username'] as String).toLowerCase().contains(query))
+          .where(
+            (acc) => (acc['username'] as String).toLowerCase().contains(query),
+          )
           .toList();
     });
   }
@@ -99,7 +104,11 @@ class _ManageEmployeeTasksScreenState extends State<ManageEmployeeTasksScreen>
             curve: Curves.easeInOut,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF0A2E63), Color(0xFF1565C0), Color(0xFF42A5F5)],
+                colors: [
+                  Color(0xFF0A2E63),
+                  Color(0xFF1565C0),
+                  Color(0xFF42A5F5),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -110,8 +119,10 @@ class _ManageEmployeeTasksScreenState extends State<ManageEmployeeTasksScreen>
             child: Column(
               children: [
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(25),
@@ -122,11 +133,16 @@ class _ManageEmployeeTasksScreenState extends State<ManageEmployeeTasksScreen>
                       style: const TextStyle(color: Colors.white),
                       decoration: const InputDecoration(
                         hintText: "Search employee...",
-                        hintStyle: TextStyle(color: Colors.white70, fontSize: 14),
+                        hintStyle: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
                         prefixIcon: Icon(Icons.search, color: Colors.white),
                         border: InputBorder.none,
-                        contentPadding:
-                            EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 15,
+                        ),
                       ),
                     ),
                   ),
@@ -136,8 +152,10 @@ class _ManageEmployeeTasksScreenState extends State<ManageEmployeeTasksScreen>
                       ? const Center(
                           child: Text(
                             'No accounts found.',
-                            style:
-                                TextStyle(fontSize: 16, color: Colors.white70),
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white70,
+                            ),
                           ),
                         )
                       : ListView.builder(
@@ -179,18 +197,22 @@ class _ManageEmployeeTasksScreenState extends State<ManageEmployeeTasksScreen>
                                   title: Text(
                                     account['username'],
                                     style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold),
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                   subtitle: Text(
                                     'Role: ${account['role']}',
                                     style: const TextStyle(
-                                        color: Colors.white70, fontSize: 13),
+                                      color: Colors.white70,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                   trailing: const Icon(
-                                      Icons.arrow_forward_ios_rounded,
-                                      color: Colors.white70,
-                                      size: 18),
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: Colors.white70,
+                                    size: 18,
+                                  ),
                                 ),
                               ),
                             );
@@ -225,18 +247,21 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    usernameController =
-        TextEditingController(text: widget.account['username']);
-    passwordController =
-        TextEditingController(text: widget.account['password']);
+    usernameController = TextEditingController(
+      text: widget.account['username'],
+    );
+    passwordController = TextEditingController(
+      text: widget.account['password'],
+    );
     selectedRole = widget.account['role'];
     _loadTasks();
   }
 
   Future<void> _loadTasks() async {
     final prefs = await SharedPreferences.getInstance();
-    final String? tasksJson =
-        prefs.getString('tasks_${widget.account['username']}');
+    final String? tasksJson = prefs.getString(
+      'tasks_${widget.account['username']}',
+    );
 
     if (tasksJson != null) {
       final List decoded = jsonDecode(tasksJson);
@@ -251,11 +276,13 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
 
     if (accountsJson != null) {
       final List decoded = jsonDecode(accountsJson);
-      final List<Map<String, dynamic>> accounts =
-          decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+      final List<Map<String, dynamic>> accounts = decoded
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
 
       final index = accounts.indexWhere(
-          (acc) => acc['username'] == widget.account['username']);
+        (acc) => acc['username'] == widget.account['username'],
+      );
 
       if (index != -1) {
         accounts[index]['username'] = usernameController.text.trim();
@@ -265,8 +292,9 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
         await prefs.setString('accounts', jsonEncode(accounts));
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text("Account updated successfully."),
-              duration: Duration(seconds: 2)),
+            content: Text("Account updated successfully."),
+            duration: Duration(seconds: 2),
+          ),
         );
       }
     }
@@ -284,8 +312,9 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel")),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
           TextButton(
             onPressed: () async {
               if (controller.text.trim().isNotEmpty) {
@@ -322,7 +351,9 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
     tasks.removeAt(index);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
-        'tasks_${widget.account['username']}', jsonEncode(tasks));
+      'tasks_${widget.account['username']}',
+      jsonEncode(tasks),
+    );
     setState(() {});
   }
 
@@ -357,7 +388,11 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF0A2E63), Color(0xFF1565C0), Color(0xFF42A5F5)],
+                colors: [
+                  Color(0xFF0A2E63),
+                  Color(0xFF1565C0),
+                  Color(0xFF42A5F5),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -378,11 +413,14 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Account Details",
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white)),
+                      const Text(
+                        "Account Details",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: usernameController,
@@ -414,10 +452,12 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                           labelStyle: TextStyle(color: Colors.white70),
                         ),
                         items: roles
-                            .map((role) => DropdownMenuItem(
-                                  value: role,
-                                  child: Text(role),
-                                ))
+                            .map(
+                              (role) => DropdownMenuItem(
+                                value: role,
+                                child: Text(role),
+                              ),
+                            )
                             .toList(),
                         onChanged: (value) {
                           if (value != null) {
@@ -434,7 +474,8 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                           backgroundColor: Colors.blueAccent,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ],
@@ -442,37 +483,39 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                 ),
                 const SizedBox(height: 20),
 
-// Assigned Tasks Header + Add Button Row
-Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-    const Text(
-      "Assigned Tasks",
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
-        fontSize: 16,
-      ),
-    ),
-    IconButton(
-      onPressed: _addTask,
-      icon: const Icon(Icons.add_circle_rounded, color: Colors.white),
-      tooltip: "Assign New Task",
-    ),
-  ],
-),
-const SizedBox(height: 10),
+                // Assigned Tasks Header + Add Button Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Assigned Tasks",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _addTask,
+                      icon: const Icon(
+                        Icons.add_circle_rounded,
+                        color: Colors.white,
+                      ),
+                      tooltip: "Assign New Task",
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
 
-if (tasks.isEmpty)
-  const Text(
-    "No tasks assigned.",
-    style: TextStyle(color: Colors.white70),
-  )
-else
-  ...tasks.asMap().entries.map(
-        (entry) => _buildTaskTile(entry.key, entry.value),
-      ),
-
+                if (tasks.isEmpty)
+                  const Text(
+                    "No tasks assigned.",
+                    style: TextStyle(color: Colors.white70),
+                  )
+                else
+                  ...tasks.asMap().entries.map(
+                    (entry) => _buildTaskTile(entry.key, entry.value),
+                  ),
               ],
             ),
           ),
@@ -493,7 +536,7 @@ else
         gradient: LinearGradient(
           colors: [
             Colors.white.withOpacity(0.15),
-            Colors.white.withOpacity(0.05)
+            Colors.white.withOpacity(0.05),
           ],
         ),
         border: Border.all(color: Colors.white.withOpacity(0.2)),
@@ -517,20 +560,23 @@ else
                 if (completedTime != null)
                   Text(
                     "Completed: ${_formatDateTime(completedTime)}",
-                    style:
-                        const TextStyle(color: Colors.greenAccent, fontSize: 13),
+                    style: const TextStyle(
+                      color: Colors.greenAccent,
+                      fontSize: 13,
+                    ),
                   ),
                 if (totalHours.isNotEmpty)
                   Text(
                     "Total Hours: $totalHours",
-                    style:
-                        const TextStyle(color: Colors.amberAccent, fontSize: 13),
+                    style: const TextStyle(
+                      color: Colors.amberAccent,
+                      fontSize: 13,
+                    ),
                   ),
               ],
             ),
             trailing: IconButton(
-              icon:
-                  const Icon(Icons.delete_outline, color: Colors.white70),
+              icon: const Icon(Icons.delete_outline, color: Colors.white70),
               onPressed: () => _removeTask(index),
             ),
           ),

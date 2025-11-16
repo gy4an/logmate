@@ -27,8 +27,10 @@ class _LogTaskScreenState extends State<LogTaskScreen>
   @override
   void initState() {
     super.initState();
-    _animationController =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
     _loadTasks();
   }
 
@@ -55,14 +57,16 @@ class _LogTaskScreenState extends State<LogTaskScreen>
     final task = _taskController.text.trim();
 
     if (task.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Please enter a task name')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a task name')));
       return;
     }
 
     if (_signatureController.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Please sign before saving')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign before saving')),
+      );
       return;
     }
 
@@ -90,8 +94,9 @@ class _LogTaskScreenState extends State<LogTaskScreen>
     });
 
     await _saveTasksToPrefs();
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Task started successfully')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Task started successfully')));
   }
 
   Future<void> _showCompletionPopup(int index) async {
@@ -99,7 +104,9 @@ class _LogTaskScreenState extends State<LogTaskScreen>
     // 🔹 Block admin-assigned tasks
     if (task['assignedBy'] == 'admin') {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("You can't complete admin-assigned tasks.")),
+        const SnackBar(
+          content: Text("You can't complete admin-assigned tasks."),
+        ),
       );
       return;
     }
@@ -119,14 +126,18 @@ class _LogTaskScreenState extends State<LogTaskScreen>
             child: AlertDialog(
               backgroundColor: Colors.white.withOpacity(0.1),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  side: BorderSide(color: Colors.white.withOpacity(0.25))),
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: Colors.white.withOpacity(0.25)),
+              ),
               title: const Center(
-                child: Text("Complete Task",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20)),
+                child: Text(
+                  "Complete Task",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
               ),
               content: SizedBox(
                 width: MediaQuery.of(context).size.width * 0.8,
@@ -138,8 +149,10 @@ class _LogTaskScreenState extends State<LogTaskScreen>
                       style: const TextStyle(color: Colors.white70),
                     ),
                     const SizedBox(height: 12),
-                    const Text("Signature:",
-                        style: TextStyle(color: Colors.white, fontSize: 16)),
+                    const Text(
+                      "Signature:",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
                     const SizedBox(height: 8),
                     Container(
                       height: 120,
@@ -162,28 +175,34 @@ class _LogTaskScreenState extends State<LogTaskScreen>
                     Navigator.pop(context);
                   },
                   icon: const Icon(Icons.close, color: Colors.white),
-                  label: const Text('Cancel',
-                      style: TextStyle(color: Colors.white)),
+                  label: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orangeAccent,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   icon: const Icon(Icons.check),
                   label: const Text('Confirm'),
                   onPressed: () async {
                     if (sigController.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please sign to complete.')),
+                        const SnackBar(
+                          content: Text('Please sign to complete.'),
+                        ),
                       );
                       return;
                     }
 
                     final sigBytes = await sigController.toPngBytes();
-                    final sigBase64 =
-                        sigBytes != null ? base64Encode(sigBytes) : null;
+                    final sigBase64 = sigBytes != null
+                        ? base64Encode(sigBytes)
+                        : null;
                     final now = DateTime.now();
                     final start = DateTime.parse(_tasks[index]['startTime']);
                     final diff = now.difference(start);
@@ -256,33 +275,39 @@ class _LogTaskScreenState extends State<LogTaskScreen>
                   child: Text(
                     'Welcome, ${widget.username}',
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold),
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
                 Expanded(
                   child: _tasks.isEmpty
                       ? Center(
-                          child: Text('No tasks yet — tap + to add one!',
-                              style: TextStyle(
-                                  color: Colors.white.withOpacity(0.85),
-                                  fontSize: 15)))
+                          child: Text(
+                            'No tasks yet — tap + to add one!',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.85),
+                              fontSize: 15,
+                            ),
+                          ),
+                        )
                       : ListView.builder(
                           itemCount: _tasks.length,
                           itemBuilder: (context, i) {
                             final t = _tasks[i];
-                            final isAdmin = t['assignedBy'] == 'admin'; // 🔹 new check
+                            final isAdmin =
+                                t['assignedBy'] == 'admin'; // 🔹 new check
                             final startTime = t['startTime'] != null
                                 ? TimeOfDay.fromDateTime(
-                                        DateTime.parse(t['startTime']))
-                                    .format(context)
+                                    DateTime.parse(t['startTime']),
+                                  ).format(context)
                                 : '--';
                             final endTime = t['endTime'] != null
                                 ? TimeOfDay.fromDateTime(
-                                        DateTime.parse(t['endTime']))
-                                    .format(context)
+                                    DateTime.parse(t['endTime']),
+                                  ).format(context)
                                 : '--';
                             final total = t['totalHours'] != null
                                 ? "${t['totalHours'].toStringAsFixed(2)} hrs"
@@ -291,33 +316,47 @@ class _LogTaskScreenState extends State<LogTaskScreen>
                             return Card(
                               color: Colors.white.withOpacity(0.12),
                               shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14)),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
                               margin: const EdgeInsets.symmetric(vertical: 8),
                               child: ListTile(
                                 title: Text(
                                   t['task'] ?? '',
                                   style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold),
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     if (isAdmin)
-                                      const Text("Assigned by Admin",
-                                          style: TextStyle(
-                                              color: Colors.amberAccent,
-                                              fontWeight: FontWeight.bold)),
-                                    Text("Start: $startTime",
-                                        style: const TextStyle(
-                                            color: Colors.white70)),
-                                    Text("End: $endTime",
-                                        style: const TextStyle(
-                                            color: Colors.white70)),
+                                      const Text(
+                                        "Assigned by Admin",
+                                        style: TextStyle(
+                                          color: Colors.amberAccent,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    Text(
+                                      "Start: $startTime",
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                    Text(
+                                      "End: $endTime",
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                      ),
+                                    ),
                                     if (t['completed'] == true)
-                                      Text("Total Worked: $total",
-                                          style: const TextStyle(
-                                              color: Colors.white70)),
+                                      Text(
+                                        "Total Worked: $total",
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                        ),
+                                      ),
                                     Text(
                                       t['completed'] == true
                                           ? "Status: Completed"
@@ -332,24 +371,28 @@ class _LogTaskScreenState extends State<LogTaskScreen>
                                   ],
                                 ),
                                 trailing: isAdmin
-                                    ? const Icon(Icons.lock_outline,
-                                        color: Colors.grey)
+                                    ? const Icon(
+                                        Icons.lock_outline,
+                                        color: Colors.grey,
+                                      )
                                     : !(t['completed'] ?? false)
-                                        ? ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    Colors.greenAccent),
-                                            onPressed: () =>
-                                                _showCompletionPopup(i),
-                                            child: const Text('Complete'),
-                                          )
-                                        : const Icon(Icons.check_circle,
-                                            color: Colors.greenAccent),
+                                    ? ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.greenAccent,
+                                        ),
+                                        onPressed: () =>
+                                            _showCompletionPopup(i),
+                                        child: const Text('Complete'),
+                                      )
+                                    : const Icon(
+                                        Icons.check_circle,
+                                        color: Colors.greenAccent,
+                                      ),
                               ),
                             );
                           },
                         ),
-                )
+                ),
               ],
             ),
           ),
@@ -382,34 +425,46 @@ class _LogTaskScreenState extends State<LogTaskScreen>
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.15),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(25)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(25),
+              ),
             ),
             child: ListView(
               controller: controller,
               children: [
                 const Center(
-                    child: Icon(Icons.drag_handle,
-                        color: Colors.white70, size: 32)),
+                  child: Icon(
+                    Icons.drag_handle,
+                    color: Colors.white70,
+                    size: 32,
+                  ),
+                ),
                 TextField(
                   controller: _taskController,
                   decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.assignment_outlined,
-                        color: Colors.white),
+                    prefixIcon: const Icon(
+                      Icons.assignment_outlined,
+                      color: Colors.white,
+                    ),
                     hintText: 'Task description',
                     hintStyle: const TextStyle(color: Colors.white70),
                     filled: true,
                     fillColor: Colors.white.withOpacity(0.12),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none),
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                   style: const TextStyle(color: Colors.white),
                 ),
                 const SizedBox(height: 12),
-                const Text('Signature',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600)),
+                const Text(
+                  'Signature',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Container(
                   height: 120,
@@ -427,10 +482,13 @@ class _LogTaskScreenState extends State<LogTaskScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton.icon(
-                        onPressed: () => _signatureController.clear(),
-                        icon: const Icon(Icons.clear, color: Colors.white),
-                        label: const Text('Clear',
-                            style: TextStyle(color: Colors.white))),
+                      onPressed: () => _signatureController.clear(),
+                      icon: const Icon(Icons.clear, color: Colors.white),
+                      label: const Text(
+                        'Clear',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
                     ElevatedButton.icon(
                       onPressed: () {
                         _addTask();
@@ -439,9 +497,11 @@ class _LogTaskScreenState extends State<LogTaskScreen>
                       icon: const Icon(Icons.play_arrow),
                       label: const Text('Start Task'),
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orangeAccent,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12))),
+                        backgroundColor: Colors.orangeAccent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
                   ],
                 ),
