@@ -266,7 +266,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 👋 Enhanced Welcome Text
+                    // 👋 Welcome Text
                     Text(
                       "Welcome back, ${widget.username} 👋",
                       style: const TextStyle(
@@ -340,69 +340,76 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                     const SizedBox(height: 20),
 
                     // ✅ Action buttons
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 14,
-                      crossAxisSpacing: 14,
-                      childAspectRatio: 1,
+                    Column(
                       children: [
-                        _buildActionCard(
-                          icon: Icons.assignment,
-                          title: "Log Tasks",
-                          gradientColors: [
-                            Colors.indigo,
-                            Colors.indigo.shade700,
+                        GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 14,
+                          crossAxisSpacing: 14,
+                          childAspectRatio: 1,
+                          children: [
+                            _buildActionCard(
+                              icon: Icons.assignment,
+                              title: "Log Tasks",
+                              gradientColors: [
+                                Colors.indigo,
+                                Colors.indigo.shade700,
+                              ],
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => LogTaskScreen(
+                                      username: widget.username,
+                                    ),
+                                  ),
+                                ).then((_) => _loadTaskSummary());
+                              },
+                            ),
+                            _buildActionCard(
+                              icon: Icons.feedback,
+                              title: "Feedback",
+                              gradientColors: [
+                                Colors.orange,
+                                Colors.deepOrange,
+                              ],
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => UserFeedbackScreen(
+                                      username: widget.username,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                           ],
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    LogTaskScreen(username: widget.username),
-                              ),
-                            ).then((_) => _loadTaskSummary());
-                          },
                         ),
-                        _buildActionCard(
-                          icon: Icons.feedback,
-                          title: "Feedback",
-                          gradientColors: [Colors.orange, Colors.deepOrange],
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => UserFeedbackScreen(
-                                  username: widget.username,
+
+                        const SizedBox(height: 14),
+
+                        // ✅ ONE LARGE REPORT BUTTON
+                        SizedBox(
+                          height: 120,
+                          width: double.infinity,
+                          child: _buildActionCard(
+                            icon: Icons.bar_chart,
+                            title: "Reports",
+                            gradientColors: [Colors.teal, Colors.teal.shade800],
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => UserAnalyticsScreen(
+                                    username: widget.username,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildActionCard(
-                          icon: Icons.bar_chart,
-                          title: "Reports",
-                          gradientColors: [Colors.teal, Colors.teal.shade800],
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => UserAnalyticsScreen(
-                                  username: widget.username,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildActionCard(
-                          icon: Icons.settings,
-                          title: "Settings",
-                          gradientColors: [
-                            Colors.purple,
-                            Colors.deepPurple.shade800,
-                          ],
-                          onTap: () {},
+                              );
+                            },
+                          ),
                         ),
                       ],
                     ),

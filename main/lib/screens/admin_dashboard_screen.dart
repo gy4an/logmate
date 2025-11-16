@@ -14,7 +14,8 @@ class AdminDashboardScreen extends StatefulWidget {
   State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
 }
 
-class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+class _AdminDashboardScreenState extends State<AdminDashboardScreen>
+    with WidgetsBindingObserver {
   int _studentCount = 0;
   int _taskCount = 0;
   int _pendingCount = 0;
@@ -23,10 +24,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadSummaryData();
   }
 
-  // ✅ UPDATED FUNCTION (only this part changed)
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // Refresh summary whenever app resumes / screen gains focus
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadSummaryData();
+    }
+  }
+
   Future<void> _loadSummaryData() async {
     final prefs = await SharedPreferences.getInstance();
     final keys = prefs.getKeys();
@@ -55,15 +70,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           if (raw is! Map) continue;
           final Map<String, dynamic> t = Map<String, dynamic>.from(raw);
 
-          final bool completed = (t['completed'] == true);
-          if (completed && t['totalHours'] != null) {
-            final double hours =
-                double.tryParse(t['totalHours'].toString()) ?? 0.0;
-            totalActualHours += hours;
+          final bool completed = t['approved'] == true;
+
+          // Compute hours from startTime/endTime or fallback to hours
+          double hours = 0.0;
+          try {
+            if (t['startTime'] != null && t['endTime'] != null) {
+              final start = DateTime.parse(t['startTime']);
+              final end = DateTime.parse(t['endTime']);
+              hours = end.difference(start).inMinutes / 60.0;
+            } else {
+              hours = double.tryParse(t['hours']?.toString() ?? '0') ?? 0.0;
+            }
+          } catch (_) {
+            hours = 0.0;
           }
 
           if (completed) {
-            // completed, no need to count as pending
+            totalActualHours += hours;
           } else {
             pendingTasks++;
           }
@@ -71,14 +95,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       }
     }
 
-    setState(() {
-      _studentCount = students;
-      _taskCount = totalTasks;
-      _pendingCount = pendingTasks;
-      _totalActualHours = totalActualHours;
-    });
+    if (mounted) {
+      setState(() {
+        _studentCount = students;
+        _taskCount = totalTasks;
+        _pendingCount = pendingTasks;
+        _totalActualHours = totalActualHours;
+      });
+    }
   }
-  // ✅ END OF UPDATED FUNCTION
 
   Future<bool> _showLogoutDialog(BuildContext context) async {
     final result = await showDialog<bool>(
@@ -208,10 +233,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  Future<void> _navigateAndRefresh(Widget screen) async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+    _loadSummaryData(); // Refresh after returning
+  }
+
   @override
   Widget build(BuildContext context) {
-    const darkBlue = Color(0xFF0A2E63);
-
     return WillPopScope(
       onWillPop: () async {
         final shouldLogout = await _showLogoutDialog(context);
@@ -286,7 +314,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
                   Row(
                     children: [
                       summaryCard(
@@ -321,7 +348,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ],
                   ),
                   const SizedBox(height: 25),
-
                   Expanded(
                     child: GridView.count(
                       crossAxisCount: 2,
@@ -336,13 +362,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             Colors.indigo.shade700,
                           ],
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const AdminSignatureScreen(),
-                              ),
-                            );
+                            _navigateAndRefresh(const AdminSignatureScreen());
                           },
                         ),
                         dashboardCard(
@@ -350,13 +370,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           title: "Analytics & Reports",
                           colors: [Colors.teal.shade400, Colors.teal.shade700],
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const AdminAnalyticsScreen(),
-                              ),
-                            );
+                            _navigateAndRefresh(const AdminAnalyticsScreen());
                           },
                         ),
                         dashboardCard(
@@ -367,12 +381,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             Colors.deepPurple.shade700,
                           ],
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const ManageEmployeeTasksScreen(),
-                              ),
+                            _navigateAndRefresh(
+                              const ManageEmployeeTasksScreen(),
                             );
                           },
                         ),
@@ -384,13 +394,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             Colors.orange.shade700,
                           ],
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const AdminFeedbackScreen(),
-                              ),
-                            );
+                            _navigateAndRefresh(const AdminFeedbackScreen());
                           },
                         ),
                       ],
